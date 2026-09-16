@@ -39,6 +39,9 @@ COPY --from=builder /root/.local /root/.local
 # Copy application code
 COPY . .
 
+# Ensure instance directory exists for SQLite (PostgreSQL via DATABASE_URL bypasses this)
+RUN mkdir -p /app/instance
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
