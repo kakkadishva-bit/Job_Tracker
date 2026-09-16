@@ -1,0 +1,134 @@
+{
+  "name": "JobAgent - Resume Analysis Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "resume-analysis",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedMethods": "POST"
+        }
+      },
+      "id": "webhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You are an expert ATS (Applicant Tracking System) analyzer. Analyze resumes professionally and provide detailed scoring."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this resume for the role of {{ $json.body.target_role }}.\n\nResume:\n{{ $json.body.resume_text }}\n\nProvide analysis in JSON format with:\n1. ats_score (0-100)\n2. keyword_match_score (0-30)\n3. formatting_score (0-10)\n4. experience_score (0-20)\n5. skills_score (0-15)\n6. education_score (0-5)\n7. grammar_score (0-10)\n8. strengths (array of 3-5 items)\n9. weaknesses (array of 3-5 items)\n10. missing_keywords (array)\n11. suggestions (array with priority and impact)\n12. action_verbs_found (array)\n13. ats_issues (array)\n\nBe accurate and professional. Do not fabricate scores."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "aiAgent1",
+      "name": "AI Resume Analysis",
+      "type": "n8n-nodes-base.googleAI",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and structure data\nconst aiResponse = $json.message.content;\nlet analysisData;\n\ntry {\n  // Extract JSON from response\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    analysisData = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch (e) {\n  // Fallback structure\n  analysisData = {\n    ats_score: 0,\n    error: 'Failed to parse AI response',\n    raw_response: aiResponse\n  };\n}\n\n// Add metadata\nanalysisData.analyzed_at = new Date().toISOString();\nanalysisData.role = $json.body.target_role;\nanalysisData.source = 'ai_powered';\n\nreturn {\n  json: analysisData\n};"
+      },
+      "id": "code1",
+      "name": "Process Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "resume_analyses",
+        "columns": "user_id, role, ats_score, analysis_data, source, created_at",
+        "values": "={{ $json.user_id || null }}, {{ $json.role }}, {{ $json.ats_score }}, '{{ JSON.stringify($json) }}', 'ai_powered', NOW()"
+      },
+      "id": "postgres1",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Resume Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Resume Analysis": {
+      "main": [
+        [
+          {
+            "node": "Process Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Analysis": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

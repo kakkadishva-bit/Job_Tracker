@@ -1,0 +1,131 @@
+{
+  "name": "JobAgent - Career Insights Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "career-insights",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedMethods": "POST"
+        }
+      },
+      "id": "webhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You are a career insights analyst. Provide accurate market data and trends for career planning."
+            },
+            {
+              "role": "user",
+              "content": "Provide career insights for the role: {{ $json.body.role }}\n\nInclude:\n1. average_salary_usd (number)\n2. average_salary_inr (string format)\n3. entry_level_salary (string)\n4. senior_level_salary (string)\n5. demand_level (Very High/High/Moderate/Low)\n6. growth_rate (percentage with timeframe)\n7. hiring_trend (description)\n8. top_companies (array of 8-10 companies)\n9. future_outlook (1-2 sentences)\n10. key_industries (array)\n11. required_skills (array of 10-15 skills)\n12. certifications (array of valuable certifications)\n13. career_path (array showing progression)\n\nBase insights on real market data. Be accurate and realistic.\n\nFormat as JSON."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "aiAgent1",
+      "name": "AI Career Insights",
+      "type": "n8n-nodes-base.googleAI",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Structure career insights\nconst aiResponse = $json.message.content;\nlet insights;\n\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  insights = jsonMatch ? JSON.parse(jsonMatch[0]) : {};\n} catch (e) {\n  insights = { error: 'Failed to parse' };\n}\n\n// Add metadata\ninsights.role = $json.body.role;\ninsights.generated_at = new Date().toISOString();\ninsights.source = 'ai_powered_with_market_data';\ninsights.country = $json.body.country || 'Global';\n\nreturn {\n  json: insights\n};"
+      },
+      "id": "code1",
+      "name": "Structure Insights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "career_insights",
+        "columns": "role, insights_data, country, source, created_at",
+        "values": "={{ $json.role }}, '{{ JSON.stringify($json) }}', {{ $json.country }}, 'ai_powered', NOW()"
+      },
+      "id": "postgres1",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Career Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Career Insights": {
+      "main": [
+        [
+          {
+            "node": "Structure Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Insights": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

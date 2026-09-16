@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreciousMetals AI - Investment Intelligence Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: { 50:'#fff9e6', 100:'#fff0b3', 200:'#ffe680', 300:'#ffd633', 400:'#ffc107', 500:'#d4a017', 600:'#b8860b', 700:'#8B6914', 800:'#6b4f0e', 900:'#4a370a' },
+                        silver: { 50:'#f8f9fa', 100:'#e9ecef', 200:'#dee2e6', 300:'#ced4da', 400:'#adb5bd', 500:'#8B8B8B', 600:'#6c757d', 700:'#495057', 800:'#343a40', 900:'#212529' },
+                        charcoal: { 50:'#2a2d35', 100:'#23262e', 200:'#1e2028', 300:'#1a1c23', 400:'#16181e', 500:'#121318', 600:'#0e0f13', 700:'#0a0b0e', 800:'#060709', 900:'#020203' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0b0e; color: #e9ecef; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #121318; }
+        ::-webkit-scrollbar-thumb { background: #343a40; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #495057; }
+        .glass { background: rgba(26, 28, 35, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+        .glass-light { background: rgba(34, 38, 48, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+        .glow-gold { box-shadow: 0 0 20px rgba(212, 160, 23, 0.15); }
+        .glow-silver { box-shadow: 0 0 20px rgba(173, 181, 189, 0.15); }
+        .gradient-gold { background: linear-gradient(135deg, #d4a017, #ffc107); }
+        .gradient-silver { background: linear-gradient(135deg, #8B8B8B, #dee2e6); }
+        .text-gold { color: #ffc107; }
+        .text-silver { color: #ced4da; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px rgba(212,160,23,0.3); } 50% { box-shadow: 0 0 20px rgba(212,160,23,0.6); } }
+        .pulse-glow { animation: pulse-glow 2s infinite; }
+        .nav-item { transition: all 0.2s; }
+        .nav-item:hover { background: rgba(212, 160, 23, 0.1); }
+        .nav-item.active { background: rgba(212, 160, 23, 0.15); border-right: 3px solid #ffc107; color: #ffc107; }
+        .card-hover { transition: all 0.3s; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .risk-low { color: #22c55e; }
+        .risk-moderate { color: #f59e0b; }
+        .risk-high { color: #ef4444; }
+        .btn-gold { background: linear-gradient(135deg, #d4a017, #b8860b); color: white; }
+        .btn-gold:hover { background: linear-gradient(135deg, #ffc107, #d4a017); }
+        input, select, textarea { background: #1a1c23; border: 1px solid #343a40; color: #e9ecef; border-radius: 8px; padding: 8px 12px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #d4a017; box-shadow: 0 0 0 2px rgba(212,160,23,0.2); }
+        .tab-btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 500; }
+        .tab-btn.active { background: rgba(212,160,23,0.2); color: #ffc107; }
+        .tab-btn:not(.active) { color: #adb5bd; }
+        .tab-btn:not(.active):hover { background: rgba(255,255,255,0.05); color: #e9ecef; }
+        .chart-container { position: relative; height: 300px; }
+        .mobile-nav { display: none; }
+        @media (max-width: 768px) { .sidebar { display: none; } .mobile-nav { display: flex; } .main-content { margin-left: 0 !important; } }
+        .loading-spinner { border: 3px solid #1a1c23; border-top: 3px solid #ffc107; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tooltip { position: relative; }
+        .tooltip::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #343a40; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .tooltip:hover::after { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+    
+    // ============================================================
+    // API Client
+    // ============================================================
+    const API = {
+        base: '',
+        async get(url) {
+            const res = await fetch(this.base + url);
+            if (!res.ok) throw new Error(`API Error: ${res.status}`);
+            return res.json();
+        },
+        async post(url, data) {
+            const res = await fetch(this.base + url, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+            });
+            return res.json();
+        },
+        async put(url, data) {
+            const res = await fetch(this.base + url, {
+                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+            });
+            return res.json();
+        },
+        async del(url) {
+            const res = await fetch(this.base + url, { method: 'DELETE' });
+            return res.json();
+        }
+    };
+    
+    // ============================================================
+    // Utility Functions
+    // ============================================================
+    const fmt = {
+        currency: (v, d=2) => v != null ? '₹' + Number(v).toLocaleString('en-IN', {minimumFractionDigits: d, maximumFractionDigits: d}) : '-',
+        num: (v, d=2) => v != null ? Number(v).toLocaleString('en-IN', {maximumFractionDigits: d}) : '-',
+        pct: (v, d=2) => v != null ? (v >= 0 ? '+' : '') + Number(v).toFixed(d) + '%' : '-',
+        vol: (v) => {
+            if (v == null) return '-';
+            if (v >= 10000000) return (v/10000000).toFixed(2) + ' Cr';
+            if (v >= 100000) return (v/100000).toFixed(2) + ' L';
+            if (v >= 1000) return (v/1000).toFixed(1) + ' K';
+            return v.toString();
+        },
+        date: (v) => v ? new Date(v).toLocaleDateString('en-IN') : '-',
+        datetime: (v) => v ? new Date(v).toLocaleString('en-IN') : '-',
+    };
+    
+    const changeColor = (v) => v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
+    const changeBg = (v) => v > 0 ? 'bg-green-500/10' : v < 0 ? 'bg-red-500/10' : 'bg-gray-500/10';
+    const riskColor = (v) => v < 4 ? 'text-green-400' : v < 6 ? 'text-yellow-400' : 'text-red-400';
+    const riskLabel = (v) => v < 4 ? 'Low Risk' : v < 6 ? 'Moderate Risk' : 'High Risk';
+    const riskBg = (v) => v < 4 ? 'bg-green-500/10 text-green-400' : v < 6 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400';
+    const typeLabel = (t) => ({gold_etf:'Gold ETF',silver_etf:'Silver ETF',commodity_etf:'Commodity ETF',mining_stock:'Mining Stock',special_stock:'Special Stock'}[t] || t);
+    const typeColor = (t) => ({gold_etf:'bg-yellow-500/10 text-yellow-400',silver_etf:'bg-gray-400/10 text-gray-300',commodity_etf:'bg-orange-500/10 text-orange-400',mining_stock:'bg-blue-500/10 text-blue-400',special_stock:'bg-purple-500/10 text-purple-400'}[t] || 'bg-gray-500/10 text-gray-400');
+    
+    // ============================================================
+    // Components
+    // ============================================================
+    
+    // Loading Component
+    function Loader({ text = 'Loading...' }) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20">
+                <div className="loading-spinner mb-4"></div>
+                <p className="text-silver-400 text-sm">{text}</p>
+            </div>
+        );
+    }
+    
+    // Stat Card
+    function StatCard({ label, value, change, icon, color = 'gold' }) {
+        return (
+            <div className="glass rounded-xl p-4 card-hover">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-silver-400 text-sm">{label}</span>
+                    {icon && <span className="text-lg">{icon}</span>}
+                </div>
+                <div className="text-xl font-bold text-white">{value}</div>
+                {change != null && (
+                    <div className={`text-sm mt-1 ${changeColor(change)}`}>
+                        {fmt.pct(change)}
+                    </div>
+                )}
+            </div>
+        );
+    }
+    
+    // Asset Card
+    function AssetCard({ asset, onClick, onWatchlist }) {
+        return (
+            <div className="glass rounded-xl p-4 card-hover cursor-pointer" onClick={() => onClick(asset)}>
+                <div className="flex items-start justify-between mb-3">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-white">{asset.symbol}</h3>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${typeColor(asset.type)}`}>
+                                {typeLabel(asset.type)}
+                            </span>
+                        </div>
+                        <p className="text-silver-400 text-sm mt-0.5 truncate max-w-[200px]">{asset.name}</p>
+                    </div>
+                    {onWatchlist && (
+                        <button onClick={(e) => { e.stopPropagation(); onWatchlist(asset.symbol); }}
+                            className="text-silver-500 hover:text-yellow-400 transition p-1" title="Add to Watchlist">
+                            ★
+                        </button>
+                    )}
+                </div>
+                <div className="flex items-end justify-between">
+                    <div>
+                        <div className="text-2xl font-bold text-white">{fmt.currency(asset.current_price)}</div>
+                        <div className={`text-sm font-medium ${changeColor(asset.daily_change_pct)}`}>
+                            {fmt.pct(asset.daily_change_pct)}
+                            <span className="text-xs ml-1">({fmt.currency(Math.abs(asset.daily_change_abs || 0))})</span>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className={`text-xs px-2 py-1 rounded-full ${riskBg(asset.risk_score)}`}>
+                            {riskLabel(asset.risk_score)}
+                        </div>
+                        <div className="text-xs text-silver-500 mt-1">Vol: {fmt.vol(asset.volume)}</div>
+                    </div>
+                </div>
+                {/* 52-week range bar */}
+                <div className="mt-3">
+                    <div className="flex justify-between text-xs text-silver-500 mb-1">
+                        <span>52W Low: {fmt.currency(asset.week_52_low)}</span>
+                        <span>52W High: {fmt.currency(asset.week_52_high)}</span>
+                    </div>
+                    <div className="h-1.5 bg-charcoal-700 rounded-full overflow-hidden">
+                        <div className="h-full gradient-gold rounded-full transition-all" 
+                             style={{width: `${asset.price_position_52w || 50}%`}}></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // Price Chart Component (using Chart.js)
+    function PriceChart({ chartData, asset, chartType, setChartType, timeRange, setTimeRange }) {
+        const canvasRef = useRef(null);
+        const chartRef = useRef(null);
+        const rsiCanvasRef = useRef(null);
+        const rsiChartRef = useRef(null);
+        const macdCanvasRef = useRef(null);
+        const macdChartRef = useRef(null);
+        
+        const ranges = ['1D', '1W', '1M', '3M', '6M', '1Y'];
+        const types = ['line', 'candle', 'volume'];
+        
+        useEffect(() => {
+            if (!chartData?.prices?.length || !canvasRef.current) return;
+            
+            if (chartRef.current) chartRef.current.destroy();
+            
+            const ctx = canvasRef.current.getContext('2d');
+            const prices = chartData.prices;
+            const labels = prices.map(p => p.date);
+            const closeData = prices.map(p => p.close);
+            
+            const datasets = [{
+                label: asset?.symbol || 'Price',
+                data: closeData,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2,
+            }];
+            
+            // Add SMA overlays if available
+            if (chartData.sma_20) {
+                datasets.push({
+                    label: 'SMA 20',
+                    data: chartData.sma_20.map(s => s.value),
+                    borderColor: '#22d3ee',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    borderDash: [5, 5],
+                    fill: false,
+                });
+            }
+            if (chartData.sma_50) {
+                datasets.push({
+                    label: 'SMA 50',
+                    data: chartData.sma_50.map(s => s.value),
+                    borderColor: '#f472b6',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    borderDash: [5, 5],
+                    fill: false,
+                });
+            }
+            
+            chartRef.current = new Chart(ctx, {
+                type: chartType === 'candle' ? 'bar' : 'line',
+                data: {
+                    labels,
+                    datasets: chartType === 'candle' ? [{
+                        label: 'OHLC',
+                        data: prices.map(p => [p.open, p.high, p.low, p.close]),
+                        backgroundColor: prices.map(p => p.close >= p.open ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)'),
+                        borderColor: prices.map(p => p.close >= p.open ? '#22c55e' : '#ef4444'),
+                        borderWidth: 1,
+                    }] : chartType === 'volume' ? [{
+                        label: 'Volume',
+                        data: prices.map(p => p.volume),
+                        backgroundColor: prices.map(p => p.close >= p.open ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'),
+                        borderRadius: 2,
+                    }] : datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: { display: chartType === 'line', labels: { color: '#adb5bd', font: { size: 11 } } },
+                        tooltip: { 
+                            backgroundColor: '#1a1c23', borderColor: '#343a40', borderWidth: 1,
+                            titleColor: '#ffc107', bodyColor: '#e9ecef',
+                        }
+                    },
+                    scales: {
+                        x: { display: true, ticks: { color: '#6c757d', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                        y: { display: true, ticks: { color: '#6c757d', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                    }
+                }
+            });
+            
+            return () => { if (chartRef.current) chartRef.current.destroy(); };
+        }, [chartData, chartType]);
+        
+        // RSI Chart
+        useEffect(() => {
+            if (!chartData?.rsi?.length || !rsiCanvasRef.current) return;
+            if (rsiChartRef.current) rsiChartRef.current.destroy();
+            
+            const ctx = rsiCanvasRef.current.getContext('2d');
+            const rsi = chartData.rsi;
+            
+            rsiChartRef.current = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: rsi.map(r => r.date),
+                    datasets: [{
+                        label: 'RSI',
+                        data: rsi.map(r => r.value),
+                        borderColor: '#a78bfa',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: false,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            min: 0, max: 100,
+                            ticks: { color: '#6c757d', font: { size: 9 }, stepSize: 25 },
+                            grid: { color: 'rgba(255,255,255,0.03)' }
+                        }
+                    }
+                }
+            });
+            
+            return () => { if (rsiChartRef.current) rsiChartRef.current.destroy(); };
+        }, [chartData]);
+        
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex gap-1">
+                        {types.map(t => (
+                            <button key={t} onClick={() => setChartType(t)}
+                                className={`tab-btn text-xs ${chartType === t ? 'active' : ''}`}>
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-1">
+                        {ranges.map(r => (
+                            <button key={r} onClick={() => setTimeRange(r)}
+                                className={`tab-btn text-xs ${timeRange === r ? 'active' : ''}`}>
+                                {r}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="chart-container glass rounded-lg p-2">
+                    <canvas ref={canvasRef}></canvas>
+                </div>
+                <div className="h-16 glass rounded-lg p-2">
+                    <div className="text-xs text-silver-500 mb-1">RSI (14)</div>
+                    <canvas ref={rsiCanvasRef}></canvas>
+                </div>
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Dashboard
+    // ============================================================
+    function DashboardPage({ onSelectAsset }) {
+        const [overview, setOverview] = useState(null);
+        const [assets, setAssets] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [activeTab, setActiveTab] = useState('all');
+        
+        useEffect(() => {
+            Promise.all([
+                API.get('/api/insights/market-overview'),
+                API.get('/api/assets')
+            ]).then(([ov, as]) => {
+                setOverview(ov);
+                setAssets(as.assets);
+            }).finally(() => setLoading(false));
+        }, []);
+        
+        if (loading) return <Loader />;
+        
+        const tabs = [
+            { id: 'all', label: 'All Assets' },
+            { id: 'gold_etf', label: 'Gold ETFs' },
+            { id: 'silver_etf', label: 'Silver ETFs' },
+            { id: 'commodity_etf', label: 'Commodity ETFs' },
+            { id: 'mining_stock', label: 'Mining Stocks' },
+            { id: 'special_stock', label: 'Special Stocks' },
+        ];
+        
+        const filtered = activeTab === 'all' ? assets : assets.filter(a => a.type === activeTab);
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                {/* Market Status & Summary */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+                        <p className="text-silver-400 text-sm">Precious Metals & ETF Market Overview</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${overview?.market_status === 'open' ? 'bg-green-400 pulse-glow' : 'bg-red-400'}`}></div>
+                        <span className="text-sm text-silver-400">
+                            Market {overview?.market_status === 'open' ? 'Open' : 'Closed'}
+                        </span>
+                    </div>
+                </div>
+                
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard label="Total Assets" value={overview?.summary?.total_assets || 0} icon="📊" />
+                    <StatCard label="Gold ETF Avg" value={fmt.pct(overview?.summary?.avg_gold_change)} change={overview?.summary?.avg_gold_change} icon="🥇" />
+                    <StatCard label="Silver ETF Avg" value={fmt.pct(overview?.summary?.avg_silver_change)} change={overview?.summary?.avg_silver_change} icon="🥈" />
+                    <StatCard label="Mining Avg" value={fmt.pct(overview?.summary?.avg_mining_change)} change={overview?.summary?.avg_mining_change} icon="⛏️" />
+                </div>
+                
+                {/* Top Gainers & Losers */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="glass rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-green-400 mb-3">📈 Top Gainers</h3>
+                        {overview?.top_gainers?.map((a, i) => (
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 cursor-pointer hover:bg-white/5 rounded px-2"
+                                 onClick={() => onSelectAsset(a.symbol)}>
+                                <div>
+                                    <span className="text-white font-medium text-sm">{a.symbol}</span>
+                                    <span className="text-silver-500 text-xs ml-2">{fmt.currency(a.price)}</span>
+                                </div>
+                                <span className="text-green-400 text-sm font-medium">{fmt.pct(a.change)}</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="glass rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-red-400 mb-3">📉 Top Losers</h3>
+                        {overview?.top_losers?.map((a, i) => (
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 cursor-pointer hover:bg-white/5 rounded px-2"
+                                 onClick={() => onSelectAsset(a.symbol)}>
+                                <div>
+                                    <span className="text-white font-medium text-sm">{a.symbol}</span>
+                                    <span className="text-silver-500 text-xs ml-2">{fmt.currency(a.price)}</span>
+                                </div>
+                                <span className="text-red-400 text-sm font-medium">{fmt.pct(a.change)}</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="glass rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-blue-400 mb-3">🔥 Most Active</h3>
+                        {overview?.most_active?.map((a, i) => (
+                            <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 cursor-pointer hover:bg-white/5 rounded px-2"
+                                 onClick={() => onSelectAsset(a.symbol)}>
+                                <div>
+                                    <span className="text-white font-medium text-sm">{a.symbol}</span>
+                                    <span className="text-silver-500 text-xs ml-2">{fmt.currency(a.price)}</span>
+                                </div>
+                                <span className="text-blue-400 text-sm font-medium">{fmt.vol(a.volume)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* Asset Type Tabs */}
+                <div className="flex gap-2 flex-wrap">
+                    {tabs.map(t => (
+                        <button key={t.id} onClick={() => setActiveTab(t.id)}
+                            className={`tab-btn ${activeTab === t.id ? 'active' : ''}`}>
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+                
+                {/* Asset Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filtered.map(asset => (
+                        <AssetCard key={asset.id} asset={asset} onClick={onSelectAsset} />
+                    ))}
+                </div>
+                
+                {/* Risk Distribution */}
+                <div className="glass rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-silver-300 mb-3">Risk Distribution</h3>
+                    <div className="flex gap-4 items-center">
+                        <div className="flex-1">
+                            <div className="flex justify-between text-sm mb-2">
+                                <span className="text-green-400">Low Risk</span>
+                                <span className="text-silver-400">{overview?.risk_distribution?.low || 0} assets</span>
+                            </div>
+                            <div className="h-2 bg-charcoal-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-green-500 rounded-full" style={{width: `${((overview?.risk_distribution?.low || 0) / (overview?.summary?.total_assets || 1)) * 100}%`}}></div>
+                            </div>
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex justify-between text-sm mb-2">
+                                <span className="text-yellow-400">Moderate Risk</span>
+                                <span className="text-silver-400">{overview?.risk_distribution?.moderate || 0} assets</span>
+                            </div>
+                            <div className="h-2 bg-charcoal-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-yellow-500 rounded-full" style={{width: `${((overview?.risk_distribution?.moderate || 0) / (overview?.summary?.total_assets || 1)) * 100}%`}}></div>
+                            </div>
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex justify-between text-sm mb-2">
+                                <span className="text-red-400">High Risk</span>
+                                <span className="text-silver-400">{overview?.risk_distribution?.high || 0} assets</span>
+                            </div>
+                            <div className="h-2 bg-charcoal-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-500 rounded-full" style={{width: `${((overview?.risk_distribution?.high || 0) / (overview?.summary?.total_assets || 1)) * 100}%`}}></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Asset Detail
+    // ============================================================
+    function AssetDetailPage({ symbol, onBack }) {
+        const [data, setData] = useState(null);
+        const [chartData, setChartData] = useState(null);
+        const [insight, setInsight] = useState(null);
+        const [chartType, setChartType] = useState('line');
+        const [timeRange, setTimeRange] = useState('1Y');
+        const [loading, setLoading] = useState(true);
+        const [activeSection, setActiveSection] = useState('overview');
+        
+        useEffect(() => {
+            setLoading(true);
+            Promise.all([
+                API.get(`/api/assets/${symbol}`),
+                API.get(`/api/assets/${symbol}/chart-data?range=${timeRange}`),
+                API.get(`/api/insights/${symbol}`),
+            ]).then(([asset, chart, ai]) => {
+                setData(asset);
+                setChartData(chart);
+                setInsight(ai);
+            }).finally(() => setLoading(false));
+        }, [symbol, timeRange]);
+        
+        if (loading) return <Loader />;
+        if (!data) return <div className="text-center py-20 text-silver-400">Asset not found</div>;
+        
+        const { asset, technical_indicators: ti, forecast, price_history } = data;
+        const sections = ['overview', 'risk', 'forecast', 'insights', 'news'];
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                    <button onClick={onBack} className="text-silver-400 hover:text-white transition p-2 hover:bg-white/5 rounded-lg">← Back</button>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold text-white">{asset.symbol}</h1>
+                            <span className={`text-xs px-2 py-1 rounded-full ${typeColor(asset.type)}`}>{typeLabel(asset.type)}</span>
+                        </div>
+                        <p className="text-silver-400">{asset.name}</p>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-3xl font-bold text-white">{fmt.currency(asset.current_price)}</div>
+                        <div className={`text-lg font-medium ${changeColor(asset.daily_change_pct)}`}>
+                            {fmt.pct(asset.daily_change_pct)}
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Section Tabs */}
+                <div className="flex gap-2 flex-wrap border-b border-white/5 pb-2">
+                    {sections.map(s => (
+                        <button key={s} onClick={() => setActiveSection(s)}
+                            className={`tab-btn capitalize ${activeSection === s ? 'active' : ''}`}>
+                            {s}
+                        </button>
+                    ))}
+                </div>
+                
+                {/* Overview Section */}
+                {activeSection === 'overview' && (
+                    <div className="space-y-6">
+                        {/* Chart */}
+                        <PriceChart chartData={chartData} asset={asset} chartType={chartType} setChartType={setChartType}
+                                     timeRange={timeRange} setTimeRange={setTimeRange} />
+                        
+                        {/* Key Metrics Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            {[
+                                { label: '52W High', value: fmt.currency(asset.week_52_high) },
+                                { label: '52W Low', value: fmt.currency(asset.week_52_low) },
+                                { label: 'Volume', value: fmt.vol(asset.volume) },
+                                ...(asset.nav ? [{ label: 'NAV', value: fmt.currency(asset.nav) }] : []),
+                                ...(asset.aum ? [{ label: 'AUM (Cr)', value: fmt.num(asset.aum) }] : []),
+                                ...(asset.expense_ratio ? [{ label: 'Expense Ratio', value: asset.expense_ratio + '%' }] : []),
+                                ...(asset.market_cap ? [{ label: 'Market Cap (Cr)', value: fmt.num(asset.market_cap) }] : []),
+                                { label: 'Min Investment', value: fmt.currency(asset.min_investment) },
+                                { label: 'SIP Eligible', value: asset.sip_eligible ? 'Yes' : 'No' },
+                                { label: 'Liquidity', value: asset.liquidity_score + '/10' },
+                                { label: 'Horizon', value: asset.recommended_horizon },
+                                { label: 'ISIN', value: asset.isin || '-' },
+                            ].filter(Boolean).map((m, i) => (
+                                <div key={i} className="glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500">{m.label}</div>
+                                    <div className="text-sm font-semibold text-white mt-1">{m.value}</div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* Technical Indicators */}
+                        <div className="glass rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-silver-300 mb-3">Technical Indicators</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500">RSI (14)</div>
+                                    <div className={`text-lg font-bold ${ti.rsi > 70 ? 'text-red-400' : ti.rsi < 30 ? 'text-green-400' : 'text-white'}`}>
+                                        {ti.rsi}
+                                    </div>
+                                    <div className="text-xs text-silver-500">{ti.rsi > 70 ? 'Overbought' : ti.rsi < 30 ? 'Oversold' : 'Neutral'}</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500">SMA 20</div>
+                                    <div className="text-lg font-bold text-white">{ti.sma_20 ? fmt.currency(ti.sma_20) : '-'}</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500">SMA 50</div>
+                                    <div className="text-lg font-bold text-white">{ti.sma_50 ? fmt.currency(ti.sma_50) : '-'}</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500">MACD</div>
+                                    <div className={`text-lg font-bold ${ti.macd?.histogram > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {ti.macd?.line?.toFixed(2) || '0'}
+                                    </div>
+                                    <div className="text-xs text-silver-500">Signal: {ti.macd?.signal?.toFixed(2) || '0'}</div>
+                                </div>
+                            </div>
+                            {ti.bollinger_bands?.upper && (
+                                <div className="mt-3 glass-light rounded-lg p-3">
+                                    <div className="text-xs text-silver-500 mb-2">Bollinger Bands</div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-red-400">Upper: {fmt.currency(ti.bollinger_bands.upper)}</span>
+                                        <span className="text-yellow-400">Middle: {fmt.currency(ti.bollinger_bands.middle)}</span>
+                                        <span className="text-green-400">Lower: {fmt.currency(ti.bollinger_bands.lower)}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {asset.tax_implications && (
+                            <div className="glass rounded-xl p-4">
+                                <h3 className="text-sm font-semibold text-silver-300 mb-2">Tax Implications</h3>
+                                <p className="text-silver-400 text-sm">{asset.tax_implications}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {/* Risk Section */}
+                {activeSection === 'risk' && (
+                    <div className="space-y-4">
+                        <div className="glass rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Risk Analysis</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.risk_score}</div>
+                                    <div className="text-sm text-silver-400">Risk Score (1-10)</div>
+                                    <div className={`text-xs mt-1 font-medium ${riskColor(asset.risk_score)}`}>{riskLabel(asset.risk_score)}</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.volatility}%</div>
+                                    <div className="text-sm text-silver-400">Volatility</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.beta}</div>
+                                    <div className="text-sm text-silver-400">Beta</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.sharpe_ratio}</div>
+                                    <div className="text-sm text-silver-400">Sharpe Ratio</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-red-400">{asset.max_drawdown}%</div>
+                                    <div className="text-sm text-silver-400">Max Drawdown</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.standard_deviation}%</div>
+                                    <div className="text-sm text-silver-400">Std Deviation</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.liquidity_score}/10</div>
+                                    <div className="text-sm text-silver-400">Liquidity Score</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-white">{asset.min_investment ? fmt.currency(asset.min_investment) : '-'}</div>
+                                    <div className="text-sm text-silver-400">Min Investment</div>
+                                </div>
+                            </div>
+                            <div className="mt-4 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+                                <p className="text-xs text-yellow-400">
+                                    ⚠️ Risk scores are calculated based on historical volatility, beta, and other technical indicators.
+                                    Past performance does not guarantee future results. Please consult a qualified financial advisor.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* Forecast Section */}
+                {activeSection === 'forecast' && forecast && (
+                    <div className="space-y-4">
+                        <div className="glass rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">Probability-Based Forecast</h3>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">
+                                    Confidence: {forecast.confidence}%
+                                </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 mb-6">
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-green-400">{forecast.bullish}%</div>
+                                    <div className="text-sm text-green-400 mt-1">📈 Bullish</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-yellow-400">{forecast.neutral}%</div>
+                                    <div className="text-sm text-yellow-400 mt-1">➡️ Neutral</div>
+                                </div>
+                                <div className="glass-light rounded-lg p-4 text-center">
+                                    <div className="text-3xl font-bold text-red-400">{forecast.bearish}%</div>
+                                    <div className="text-sm text-red-400 mt-1">📉 Bearish</div>
+                                </div>
+                            </div>
+                            
+                            <div className="glass-light rounded-lg p-4 mb-4">
+                                <h4 className="text-sm font-semibold text-silver-300 mb-2">Methodology</h4>
+                                <p className="text-sm text-silver-400">{forecast.methodology}</p>
+                            </div>
+                            
+                            {forecast.indicators && (
+                                <div className="glass-light rounded-lg p-4 mb-4">
+                                    <h4 className="text-sm font-semibold text-silver-300 mb-2">Key Indicators Used</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div><span className="text-xs text-silver-500">RSI</span><div className="text-sm text-white">{forecast.indicators.rsi}</div></div>
+                                        <div><span className="text-xs text-silver-500">SMA 20</span><div className="text-sm text-white">{forecast.indicators.sma_20}</div></div>
+                                        <div><span className="text-xs text-silver-500">SMA 50</span><div className="text-sm text-white">{forecast.indicators.sma_50}</div></div>
+                                        <div><span className="text-xs text-silver-500">5D Momentum</span><div className="text-sm text-white">{forecast.indicators.momentum_5d}%</div></div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                                <h4 className="text-sm font-semibold text-red-400 mb-1">Limitations</h4>
+                                <p className="text-xs text-silver-400">{forecast.limitations}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* AI Insights Section */}
+                {activeSection === 'insights' && insight?.insight && (
+                    <div className="space-y-4">
+                        <div className="glass rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">🤖 AI Market Insights</h3>
+                            
+                            <div className="space-y-4">
+                                <div className="glass-light rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gold-400 mb-2">Today's Movement</h4>
+                                    <p className="text-sm text-silver-300">{insight.insight.today_movement}</p>
+                                </div>
+                                
+                                <div className="glass-light rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gold-400 mb-2">Key Drivers</h4>
+                                    <ul className="space-y-1">
+                                        {insight.insight.key_drivers?.map((d, i) => (
+                                            <li key={i} className="text-sm text-silver-300 flex items-start gap-2">
+                                                <span className="text-gold-400 mt-0.5">•</span>{d}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                
+                                <div className="glass-light rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gold-400 mb-2">Market Sentiment</h4>
+                                    <p className="text-sm text-silver-300 capitalize">{insight.insight.market_sentiment}</p>
+                                </div>
+                                
+                                <div className="glass-light rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gold-400 mb-2">Long-Term Outlook</h4>
+                                    <p className="text-sm text-silver-300">{insight.insight.historical_trends}</p>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="glass-light rounded-lg p-4">
+                                        <h4 className="text-sm font-semibold text-red-400 mb-2">⚠️ Key Risks</h4>
+                                        <ul className="space-y-1">
+                                            {insight.insight.risks?.map((r, i) => (
+                                                <li key={i} className="text-xs text-silver-400">• {r}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="glass-light rounded-lg p-4">
+                                        <h4 className="text-sm font-semibold text-green-400 mb-2">💡 Opportunities</h4>
+                                        <ul className="space-y-1">
+                                            {insight.insight.opportunities?.map((o, i) => (
+                                                <li key={i} className="text-xs text-silver-400">• {o}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div className="glass-light rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-silver-300 mb-1">Data Sources</h4>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {insight.insight.data_sources?.map((s, i) => (
+                                            <span key={i} className="text-xs px-2 py-1 rounded bg-white/5 text-silver-400">{s}</span>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-silver-500 mt-2">Updated: {fmt.datetime(insight.insight.last_updated)}</p>
+                                </div>
+                                
+                                <div className="p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+                                    <p className="text-xs text-yellow-400">⚠️ {insight.insight.disclaimer}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* News Section */}
+                {activeSection === 'news' && (
+                    <div className="space-y-4">
+                        <div className="glass rounded-xl p-6">
+                            <h3 className="text-lg font-semibold text-white mb-4">Related News</h3>
+                            {insight?.related_news?.length > 0 ? (
+                                <div className="space-y-3">
+                                    {insight.related_news.map((n, i) => (
+                                        <div key={i} className="glass-light rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                    n.sentiment === 'positive' ? 'bg-green-500/10 text-green-400' :
+                                                    n.sentiment === 'negative' ? 'bg-red-500/10 text-red-400' :
+                                                    'bg-gray-500/10 text-gray-400'
+                                                }`}>{n.sentiment}</span>
+                                                <span className="text-xs text-silver-500">{n.source}</span>
+                                                <span className="text-xs text-silver-500">{fmt.datetime(n.published_at)}</span>
+                                            </div>
+                                            <h4 className="text-white font-medium mb-1">{n.title}</h4>
+                                            <p className="text-sm text-silver-400">{n.summary}</p>
+                                            {n.source_url && (
+                                                <a href={n.source_url} target="_blank" rel="noopener" className="text-xs text-gold-400 hover:underline mt-2 inline-block">
+                                                    Source: {n.source} →
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-silver-500 text-sm">No related news found.</p>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Portfolio
+    // ============================================================
+    function PortfolioPage() {
+        const [portfolios, setPortfolios] = useState([]);
+        const [assets, setAssets] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [showAddHolding, setShowAddHolding] = useState(null);
+        const [newPortfolioName, setNewPortfolioName] = useState('');
+        const [showNewPortfolio, setShowNewPortfolio] = useState(false);
+        const [holdingsForm, setHoldingsForm] = useState({ symbol: '', quantity: 1, avg_buy_price: 0 });
+        
+        useEffect(() => {
+            Promise.all([API.get('/api/portfolios'), API.get('/api/assets')])
+                .then(([p, a]) => { setPortfolios(p.portfolios); setAssets(a.assets); })
+                .finally(() => setLoading(false));
+        }, []);
+        
+        const refresh = () => API.get('/api/portfolios').then(p => setPortfolios(p.portfolios));
+        
+        const createPortfolio = async () => {
+            if (!newPortfolioName.trim()) return;
+            await API.post('/api/portfolios', { name: newPortfolioName });
+            setNewPortfolioName('');
+            setShowNewPortfolio(false);
+            refresh();
+        };
+        
+        const deletePortfolio = async (id) => {
+            if (confirm('Delete this portfolio?')) {
+                await API.del(`/api/portfolios/${id}`);
+                refresh();
+            }
+        };
+        
+        const addHolding = async (portfolioId) => {
+            await API.post(`/api/portfolios/${portfolioId}/holdings`, {
+                ...holdingsForm, symbol: holdingsForm.symbol.toUpperCase()
+            });
+            setShowAddHolding(null);
+            setHoldingsForm({ symbol: '', quantity: 1, avg_buy_price: 0 });
+            refresh();
+        };
+        
+        const removeHolding = async (portfolioId, holdingId) => {
+            await API.del(`/api/portfolios/${portfolioId}/holdings/${holdingId}`);
+            refresh();
+        };
+        
+        if (loading) return <Loader />;
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">Portfolio</h1>
+                        <p className="text-silver-400 text-sm">Track your investments</p>
+                    </div>
+                    <button onClick={() => setShowNewPortfolio(!showNewPortfolio)} className="btn-gold px-4 py-2 rounded-lg text-sm font-medium">
+                        + New Portfolio
+                    </button>
+                </div>
+                
+                {showNewPortfolio && (
+                    <div className="glass rounded-xl p-4 flex gap-3">
+                        <input value={newPortfolioName} onChange={e => setNewPortfolioName(e.target.value)}
+                            placeholder="Portfolio name" className="flex-1" />
+                        <button onClick={createPortfolio} className="btn-gold px-4 py-2 rounded-lg text-sm">Create</button>
+                    </div>
+                )}
+                
+                {portfolios.length === 0 ? (
+                    <div className="glass rounded-xl p-10 text-center">
+                        <p className="text-silver-500">No portfolios yet. Create one to start tracking.</p>
+                    </div>
+                ) : portfolios.map(p => (
+                    <div key={p.id} className="glass rounded-xl p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-white">{p.name}</h3>
+                                {p.description && <p className="text-silver-400 text-sm">{p.description}</p>}
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowAddHolding(p.id)} className="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-silver-300 hover:bg-white/10">
+                                    + Add Holding
+                                </button>
+                                <button onClick={() => deletePortfolio(p.id)} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="glass-light rounded-lg p-3">
+                                <div className="text-xs text-silver-500">Total Invested</div>
+                                <div className="text-lg font-bold text-white">{fmt.currency(p.total_invested)}</div>
+                            </div>
+                            <div className="glass-light rounded-lg p-3">
+                                <div className="text-xs text-silver-500">Current Value</div>
+                                <div className="text-lg font-bold text-white">{fmt.currency(p.current_value)}</div>
+                            </div>
+                            <div className="glass-light rounded-lg p-3">
+                                <div className="text-xs text-silver-500">P&L</div>
+                                <div className={`text-lg font-bold ${changeColor(p.pnl)}`}>
+                                    {fmt.currency(p.pnl)} ({fmt.pct(p.pnl_pct)})
+                                </div>
+                            </div>
+                            <div className="glass-light rounded-lg p-3">
+                                <div className="text-xs text-silver-500">Holdings</div>
+                                <div className="text-lg font-bold text-white">{p.holdings_count}</div>
+                            </div>
+                        </div>
+                        
+                        {/* Add Holding Form */}
+                        {showAddHolding === p.id && (
+                            <div className="glass-light rounded-lg p-4 flex gap-3 flex-wrap items-end">
+                                <div>
+                                    <label className="text-xs text-silver-500 block mb-1">Symbol</label>
+                                    <input value={holdingsForm.symbol} onChange={e => setHoldingsForm({...holdingsForm, symbol: e.target.value})}
+                                        placeholder="e.g. GOLDBEES" />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-silver-500 block mb-1">Quantity</label>
+                                    <input type="number" value={holdingsForm.quantity} 
+                                        onChange={e => setHoldingsForm({...holdingsForm, quantity: parseFloat(e.target.value) || 0})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-silver-500 block mb-1">Avg Buy Price (₹)</label>
+                                    <input type="number" value={holdingsForm.avg_buy_price}
+                                        onChange={e => setHoldingsForm({...holdingsForm, avg_buy_price: parseFloat(e.target.value) || 0})} />
+                                </div>
+                                <button onClick={() => addHolding(p.id)} className="btn-gold px-4 py-2 rounded-lg text-sm">Save</button>
+                                <button onClick={() => setShowAddHolding(null)} className="px-4 py-2 rounded-lg text-sm text-silver-400 hover:text-white">Cancel</button>
+                            </div>
+                        )}
+                        
+                        {/* Holdings Table */}
+                        {p.holdings?.length > 0 && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-silver-500 text-xs border-b border-white/5">
+                                            <th className="text-left py-2">Symbol</th>
+                                            <th className="text-right py-2">Qty</th>
+                                            <th className="text-right py-2">Avg Price</th>
+                                            <th className="text-right py-2">Current</th>
+                                            <th className="text-right py-2">Value</th>
+                                            <th className="text-right py-2">P&L</th>
+                                            <th className="text-right py-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {p.holdings.map(h => {
+                                            const value = h.quantity * (h.current_price || 0);
+                                            const invested = h.quantity * h.avg_buy_price;
+                                            const pnl = value - invested;
+                                            return (
+                                                <tr key={h.id} className="border-b border-white/5 hover:bg-white/5">
+                                                    <td className="py-2">
+                                                        <div className="font-medium text-white">{h.symbol}</div>
+                                                        <div className="text-xs text-silver-500">{h.name}</div>
+                                                    </td>
+                                                    <td className="text-right py-2 text-white">{h.quantity}</td>
+                                                    <td className="text-right py-2 text-silver-300">{fmt.currency(h.avg_buy_price)}</td>
+                                                    <td className="text-right py-2 text-white">{fmt.currency(h.current_price)}</td>
+                                                    <td className="text-right py-2 text-white font-medium">{fmt.currency(value)}</td>
+                                                    <td className={`text-right py-2 font-medium ${changeColor(pnl)}`}>{fmt.currency(pnl)}</td>
+                                                    <td className="text-right py-2">
+                                                        <button onClick={() => removeHolding(p.id, h.id)} className="text-red-400 hover:text-red-300 text-xs">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Watchlist
+    // ============================================================
+    function WatchlistPage({ onSelectAsset }) {
+        const [watchlists, setWatchlists] = useState([]);
+        const [assets, setAssets] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [showAdd, setShowAdd] = useState(null);
+        const [addSymbol, setAddSymbol] = useState('');
+        
+        useEffect(() => {
+            Promise.all([API.get('/api/watchlists'), API.get('/api/assets')])
+                .then(([w, a]) => { setWatchlists(w.watchlists); setAssets(a.assets); })
+                .finally(() => setLoading(false));
+        }, []);
+        
+        const refresh = () => API.get('/api/watchlists').then(w => setWatchlists(w.watchlists));
+        
+        const addToWatchlist = async (wlId) => {
+            if (!addSymbol.trim()) return;
+            await API.post(`/api/watchlists/${wlId}/items`, { symbol: addSymbol.toUpperCase() });
+            setAddSymbol('');
+            setShowAdd(null);
+            refresh();
+        };
+        
+        const removeFromWatchlist = async (wlId, itemId) => {
+            await API.del(`/api/watchlists/${wlId}/items/${itemId}`);
+            refresh();
+        };
+        
+        if (loading) return <Loader />;
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Watchlist</h1>
+                    <p className="text-silver-400 text-sm">Track your favorite assets</p>
+                </div>
+                
+                {watchlists.map(wl => (
+                    <div key={wl.id} className="glass rounded-xl p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-white">{wl.name}</h3>
+                            <button onClick={() => setShowAdd(wl.id)} className="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-silver-300 hover:bg-white/10">
+                                + Add Asset
+                            </button>
+                        </div>
+                        
+                        {showAdd === wl.id && (
+                            <div className="glass-light rounded-lg p-3 flex gap-3 mb-4">
+                                <select value={addSymbol} onChange={e => setAddSymbol(e.target.value)} className="flex-1">
+                                    <option value="">Select asset...</option>
+                                    {assets.map(a => (
+                                        <option key={a.symbol} value={a.symbol}>{a.symbol} - {a.name}</option>
+                                    ))}
+                                </select>
+                                <button onClick={() => addToWatchlist(wl.id)} className="btn-gold px-4 py-2 rounded-lg text-sm">Add</button>
+                                <button onClick={() => setShowAdd(null)} className="px-4 py-2 rounded-lg text-sm text-silver-400">Cancel</button>
+                            </div>
+                        )}
+                        
+                        {wl.items?.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-silver-500 text-xs border-b border-white/5">
+                                            <th className="text-left py-2">Symbol</th>
+                                            <th className="text-left py-2">Name</th>
+                                            <th className="text-right py-2">Price</th>
+                                            <th className="text-right py-2">Change</th>
+                                            <th className="text-right py-2">Risk</th>
+                                            <th className="text-right py-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {wl.items.map(item => (
+                                            <tr key={item.id} className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
+                                                onClick={() => onSelectAsset(item.symbol)}>
+                                                <td className="py-2 font-medium text-white">{item.symbol}</td>
+                                                <td className="py-2 text-silver-300">{item.name}</td>
+                                                <td className="text-right py-2 text-white">{fmt.currency(item.current_price)}</td>
+                                                <td className={`text-right py-2 ${changeColor(item.daily_change_pct)}`}>{fmt.pct(item.daily_change_pct)}</td>
+                                                <td className="text-right py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${riskBg(item.risk_score)}`}>{item.risk_score}</span></td>
+                                                <td className="text-right py-2">
+                                                    <button onClick={(e) => { e.stopPropagation(); removeFromWatchlist(wl.id, item.id); }}
+                                                        className="text-red-400 hover:text-red-300 text-xs">Remove</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-silver-500 text-sm text-center py-4">No assets in this watchlist</p>
+                        )}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: News
+    // ============================================================
+    function NewsPage() {
+        const [news, setNews] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [filter, setFilter] = useState('');
+        
+        useEffect(() => {
+            const url = filter ? `/api/news?category=${filter}` : '/api/news';
+            API.get(url).then(n => setNews(n.news)).finally(() => setLoading(false));
+        }, [filter]);
+        
+        if (loading) return <Loader />;
+        
+        const categories = ['All', 'Gold', 'Silver', 'Mining', 'Commodities', 'Financial', 'Regulatory'];
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">News & Alerts</h1>
+                    <p className="text-silver-400 text-sm">Latest market news from trusted sources</p>
+                </div>
+                
+                <div className="flex gap-2 flex-wrap">
+                    {categories.map(c => (
+                        <button key={c} onClick={() => setFilter(c === 'All' ? '' : c)}
+                            className={`tab-btn ${filter === c || (c === 'All' && !filter) ? 'active' : ''}`}>
+                            {c}
+                        </button>
+                    ))}
+                </div>
+                
+                <div className="space-y-4">
+                    {news.map(n => (
+                        <div key={n.id} className="glass rounded-xl p-5 card-hover">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    n.sentiment === 'positive' ? 'bg-green-500/10 text-green-400' :
+                                    n.sentiment === 'negative' ? 'bg-red-500/10 text-red-400' :
+                                    'bg-gray-500/10 text-gray-400'
+                                }`}>{n.sentiment}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-silver-400">{n.category}</span>
+                                <span className="text-xs text-silver-500">Source: {n.source}</span>
+                                <span className="text-xs text-silver-500">{fmt.datetime(n.published_at)}</span>
+                            </div>
+                            <h3 className="text-white font-semibold mb-2">{n.title}</h3>
+                            <p className="text-sm text-silver-400 mb-3">{n.summary}</p>
+                            <div className="flex items-center justify-between">
+                                {n.related_assets && (
+                                    <div className="flex gap-1 flex-wrap">
+                                        {n.related_assets.split(',').map(a => (
+                                            <span key={a} className="text-xs px-2 py-0.5 rounded bg-gold-500/10 text-gold-400">{a.trim()}</span>
+                                        ))}
+                                    </div>
+                                )}
+                                {n.source_url && (
+                                    <a href={n.source_url} target="_blank" rel="noopener" className="text-xs text-gold-400 hover:underline">
+                                        View Source →
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Search
+    // ============================================================
+    function SearchPage({ onSelectAsset }) {
+        const [assets, setAssets] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [search, setSearch] = useState('');
+        const [typeFilter, setTypeFilter] = useState('');
+        const [riskFilter, setRiskFilter] = useState('');
+        const [sortBy, setSortBy] = useState('symbol');
+        
+        useEffect(() => {
+            let url = '/api/assets?';
+            if (search) url += `search=${search}&`;
+            if (typeFilter) url += `type=${typeFilter}&`;
+            if (riskFilter) url += `risk_category=${riskFilter}&`;
+            url += `sort_by=${sortBy}`;
+            
+            API.get(url).then(a => setAssets(a.assets)).finally(() => setLoading(false));
+        }, [search, typeFilter, riskFilter, sortBy]);
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Search & Discover</h1>
+                    <p className="text-silver-400 text-sm">Find assets by name, symbol, sector, or risk category</p>
+                </div>
+                
+                {/* Search & Filters */}
+                <div className="glass rounded-xl p-4 space-y-3">
+                    <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                        placeholder="Search by symbol, name, or category..." className="w-full text-lg" />
+                    <div className="flex gap-3 flex-wrap">
+                        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                            <option value="">All Types</option>
+                            <option value="gold_etf">Gold ETF</option>
+                            <option value="silver_etf">Silver ETF</option>
+                            <option value="commodity_etf">Commodity ETF</option>
+                            <option value="mining_stock">Mining Stock</option>
+                            <option value="special_stock">Special Stock</option>
+                        </select>
+                        <select value={riskFilter} onChange={e => setRiskFilter(e.target.value)}>
+                            <option value="">All Risk Levels</option>
+                            <option value="low">Low Risk (1-4)</option>
+                            <option value="moderate">Moderate Risk (4-6)</option>
+                            <option value="high">High Risk (6-10)</option>
+                        </select>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                            <option value="symbol">Sort by Symbol</option>
+                            <option value="current_price">Sort by Price</option>
+                            <option value="daily_change_pct">Sort by Change %</option>
+                            <option value="risk_score">Sort by Risk</option>
+                            <option value="volume">Sort by Volume</option>
+                            <option value="sharpe_ratio">Sort by Sharpe Ratio</option>
+                        </select>
+                    </div>
+                </div>
+                
+                {loading ? <Loader /> : (
+                    <>
+                        <p className="text-silver-500 text-sm">{assets.length} assets found</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {assets.map(asset => (
+                                <AssetCard key={asset.id} asset={asset} onClick={onSelectAsset} />
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Compare
+    // ============================================================
+    function ComparePage() {
+        const [allAssets, setAllAssets] = useState([]);
+        const [selected, setSelected] = useState([]);
+        const [compareData, setCompareData] = useState(null);
+        const [loading, setLoading] = useState(true);
+        
+        useEffect(() => {
+            API.get('/api/assets').then(a => setAllAssets(a.assets)).finally(() => setLoading(false));
+        }, []);
+        
+        const doCompare = async () => {
+            if (selected.length < 2) return;
+            const data = await API.get(`/api/assets/${selected[0]}/compare?symbols=${selected.slice(1).join(',')}`);
+            setCompareData(data);
+        };
+        
+        const toggleSelect = (symbol) => {
+            setSelected(prev => prev.includes(symbol) ? prev.filter(s => s !== symbol) : [...prev, symbol].slice(0, 5));
+        };
+        
+        if (loading) return <Loader />;
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Compare Assets</h1>
+                    <p className="text-silver-400 text-sm">Select up to 5 assets to compare side by side</p>
+                </div>
+                
+                <div className="glass rounded-xl p-4">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {allAssets.map(a => (
+                            <button key={a.symbol} onClick={() => toggleSelect(a.symbol)}
+                                className={`text-xs px-3 py-1.5 rounded-lg transition ${
+                                    selected.includes(a.symbol) 
+                                    ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30' 
+                                    : 'bg-white/5 text-silver-400 hover:bg-white/10'
+                                }`}>
+                                {a.symbol}
+                            </button>
+                        ))}
+                    </div>
+                    <button onClick={doCompare} disabled={selected.length < 2}
+                        className="btn-gold px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+                        Compare ({selected.length})
+                    </button>
+                </div>
+                
+                {compareData?.assets?.length > 0 && (
+                    <div className="glass rounded-xl p-4 overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-silver-500 text-xs border-b border-white/5">
+                                    <th className="text-left py-3">Metric</th>
+                                    {compareData.assets.map(a => (
+                                        <th key={a.symbol} className="text-center py-3 text-gold-400 font-semibold">{a.symbol}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    { label: 'Price', fn: a => fmt.currency(a.current_price) },
+                                    { label: 'Change %', fn: a => <span className={changeColor(a.daily_change_pct)}>{fmt.pct(a.daily_change_pct)}</span> },
+                                    { label: 'Risk Score', fn: a => <span className={riskColor(a.risk_score)}>{a.risk_score}</span> },
+                                    { label: 'Volatility', fn: a => a.volatility + '%' },
+                                    { label: 'Beta', fn: a => a.beta },
+                                    { label: 'Sharpe Ratio', fn: a => a.sharpe_ratio },
+                                    { label: 'Max Drawdown', fn: a => <span className="text-red-400">{a.max_drawdown}%</span> },
+                                    { label: 'Volume', fn: a => fmt.vol(a.volume) },
+                                    { label: 'Liquidity', fn: a => a.liquidity_score + '/10' },
+                                    { label: 'Min Investment', fn: a => fmt.currency(a.min_investment) },
+                                    { label: 'SIP Eligible', fn: a => a.sip_eligible ? '✅' : '❌' },
+                                    { label: '30D Return', fn: a => <span className={changeColor(a.performance_30d)}>{fmt.pct(a.performance_30d)}</span> },
+                                ].map(row => (
+                                    <tr key={row.label} className="border-b border-white/5 hover:bg-white/5">
+                                        <td className="py-2 text-silver-400">{row.label}</td>
+                                        {compareData.assets.map(a => (
+                                            <td key={a.symbol} className="text-center py-2 text-white">{row.fn(a)}</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Admin
+    // ============================================================
+    function AdminPage() {
+        const [stats, setStats] = useState(null);
+        const [assets, setAssets] = useState([]);
+        const [auditLog, setAuditLog] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [showAddAsset, setShowAddAsset] = useState(false);
+        const [newAsset, setNewAsset] = useState({
+            symbol: '', name: '', type: 'gold_etf', current_price: 0, risk_score: 5,
+            volatility: 15, beta: 1.0, sharpe_ratio: 0.8, max_drawdown: -20,
+            standard_deviation: 15, week_52_high: 0, week_52_low: 0, volume: 0,
+            min_investment: 100, sip_eligible: true, recommended_horizon: '3-5 years',
+            liquidity_score: 7
+        });
+        
+        useEffect(() => {
+            Promise.all([
+                API.get('/api/admin/stats'),
+                API.get('/api/admin/assets'),
+                API.get('/api/admin/audit-log'),
+            ]).then(([s, a, l]) => {
+                setStats(s);
+                setAssets(a.assets);
+                setAuditLog(l.logs);
+            }).finally(() => setLoading(false));
+        }, []);
+        
+        const addAsset = async () => {
+            await API.post('/api/assets', newAsset);
+            setShowAddAsset(false);
+            const a = await API.get('/api/admin/assets');
+            setAssets(a.assets);
+            const s = await API.get('/api/admin/stats');
+            setStats(s);
+        };
+        
+        const toggleActive = async (id, isActive) => {
+            if (isActive) {
+                await API.del(`/api/assets/${id}`);
+            }
+            const a = await API.get('/api/admin/assets');
+            setAssets(a.assets);
+            const s = await API.get('/api/admin/stats');
+            setStats(s);
+        };
+        
+        if (loading) return <Loader />;
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
+                    <p className="text-silver-400 text-sm">Manage assets and platform configuration</p>
+                </div>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {[
+                        { label: 'Active Assets', value: stats?.active_assets, icon: '📊' },
+                        { label: 'Portfolios', value: stats?.portfolios, icon: '💼' },
+                        { label: 'Watchlist Items', value: stats?.watchlist_items, icon: '⭐' },
+                        { label: 'News Items', value: stats?.news_items, icon: '📰' },
+                        { label: 'Active Alerts', value: stats?.active_alerts, icon: '🔔' },
+                        { label: 'Audit Entries', value: stats?.audit_entries, icon: '📝' },
+                    ].map((s, i) => (
+                        <div key={i} className="glass rounded-xl p-3 text-center">
+                            <div className="text-lg mb-1">{s.icon}</div>
+                            <div className="text-xl font-bold text-white">{s.value}</div>
+                            <div className="text-xs text-silver-500">{s.label}</div>
+                        </div>
+                    ))}
+                </div>
+                
+                {/* Add Asset */}
+                <div className="glass rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-white">Asset Management</h3>
+                        <button onClick={() => setShowAddAsset(!showAddAsset)} className="btn-gold px-4 py-2 rounded-lg text-sm">
+                            + Add Asset
+                        </button>
+                    </div>
+                    
+                    {showAddAsset && (
+                        <div className="glass-light rounded-lg p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { key: 'symbol', label: 'Symbol', type: 'text' },
+                                { key: 'name', label: 'Name', type: 'text' },
+                                { key: 'type', label: 'Type', type: 'select', options: [
+                                    {v:'gold_etf',l:'Gold ETF'},{v:'silver_etf',l:'Silver ETF'},
+                                    {v:'commodity_etf',l:'Commodity ETF'},{v:'mining_stock',l:'Mining Stock'},
+                                    {v:'special_stock',l:'Special Stock'}
+                                ]},
+                                { key: 'current_price', label: 'Price', type: 'number' },
+                                { key: 'risk_score', label: 'Risk Score', type: 'number' },
+                                { key: 'week_52_high', label: '52W High', type: 'number' },
+                                { key: 'week_52_low', label: '52W Low', type: 'number' },
+                                { key: 'volume', label: 'Volume', type: 'number' },
+                            ].map(field => (
+                                <div key={field.key}>
+                                    <label className="text-xs text-silver-500 block mb-1">{field.label}</label>
+                                    {field.type === 'select' ? (
+                                        <select value={newAsset[field.key]} onChange={e => setNewAsset({...newAsset, [field.key]: e.target.value})}>
+                                            {field.options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                                        </select>
+                                    ) : (
+                                        <input type={field.type} value={newAsset[field.key]}
+                                            onChange={e => setNewAsset({...newAsset, [field.key]: field.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value})} />
+                                    )}
+                                </div>
+                            ))}
+                            <div className="flex items-end">
+                                <button onClick={addAsset} className="btn-gold px-4 py-2 rounded-lg text-sm w-full">Create</button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Assets Table */}
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-charcoal-500">
+                                <tr className="text-silver-500 text-xs border-b border-white/5">
+                                    <th className="text-left py-2">Symbol</th>
+                                    <th className="text-left py-2">Name</th>
+                                    <th className="text-left py-2">Type</th>
+                                    <th className="text-right py-2">Price</th>
+                                    <th className="text-right py-2">Risk</th>
+                                    <th className="text-center py-2">Active</th>
+                                    <th className="text-right py-2">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {assets.map(a => (
+                                    <tr key={a.id} className="border-b border-white/5 hover:bg-white/5">
+                                        <td className="py-2 font-medium text-white">{a.symbol}</td>
+                                        <td className="py-2 text-silver-300 truncate max-w-[200px]">{a.name}</td>
+                                        <td className="py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${typeColor(a.type)}`}>{typeLabel(a.type)}</span></td>
+                                        <td className="text-right py-2 text-white">{fmt.currency(a.current_price)}</td>
+                                        <td className="text-right py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${riskBg(a.risk_score)}`}>{a.risk_score}</span></td>
+                                        <td className="text-center py-2">
+                                            <span className={`w-2 h-2 rounded-full inline-block ${a.is_active ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                        </td>
+                                        <td className="text-right py-2">
+                                            <button onClick={() => toggleActive(a.id, a.is_active)}
+                                                className={`text-xs px-2 py-1 rounded ${a.is_active ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                                                {a.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                {/* Audit Log */}
+                <div className="glass rounded-xl p-4">
+                    <h3 className="font-semibold text-white mb-3">Audit Log</h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {auditLog.length === 0 ? (
+                            <p className="text-silver-500 text-sm">No audit entries yet</p>
+                        ) : auditLog.map(log => (
+                            <div key={log.id} className="glass-light rounded-lg p-3 flex items-center justify-between text-sm">
+                                <div>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full mr-2 ${
+                                        log.action === 'CREATE' ? 'bg-green-500/10 text-green-400' :
+                                        log.action === 'UPDATE' ? 'bg-blue-500/10 text-blue-400' :
+                                        'bg-red-500/10 text-red-400'
+                                    }`}>{log.action}</span>
+                                    <span className="text-silver-300">{log.entity} #{log.entity_id}</span>
+                                </div>
+                                <span className="text-silver-500 text-xs">{fmt.datetime(log.created_at)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Page: Settings
+    // ============================================================
+    function SettingsPage() {
+        const [config, setConfig] = useState(null);
+        
+        useEffect(() => {
+            API.get('/api/config').then(setConfig);
+        }, []);
+        
+        return (
+            <div className="animate-fade-in space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Settings & Information</h1>
+                </div>
+                
+                {/* Disclaimer */}
+                <div className="glass rounded-xl p-6 border border-yellow-500/20">
+                    <h3 className="text-lg font-semibold text-yellow-400 mb-3">⚠️ Disclaimer</h3>
+                    <p className="text-silver-300 text-sm leading-relaxed">{config?.disclaimer}</p>
+                </div>
+                
+                {/* Data Sources */}
+                <div className="glass rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Data Sources</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {config?.data_sources && Object.entries(config.data_sources).map(([key, src]) => (
+                            <div key={key} className="glass-light rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-white font-medium">{src.name}</span>
+                                    <span className="text-xs text-green-400">Reliability: {(src.reliability * 100).toFixed(0)}%</span>
+                                </div>
+                                <a href={src.url} target="_blank" rel="noopener" className="text-xs text-gold-400 hover:underline">{src.url} →</a>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* Platform Info */}
+                <div className="glass rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Platform Information</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div><span className="text-silver-500">Version:</span> <span className="text-white">1.0.0</span></div>
+                        <div><span className="text-silver-500">Asset Types:</span> <span className="text-white">{config?.asset_types?.length || 0}</span></div>
+                        <div><span className="text-silver-500">Sectors Covered:</span> <span className="text-white">{config?.sectors?.length || 0}</span></div>
+                        <div><span className="text-silver-500">Risk Categories:</span> <span className="text-white">{config?.risk_categories?.length || 0}</span></div>
+                    </div>
+                </div>
+                
+                {/* Keyboard Shortcuts */}
+                <div className="glass rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Keyboard Shortcuts</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {[
+                            { key: 'D', action: 'Dashboard' },
+                            { key: 'S', action: 'Search' },
+                            { key: 'P', action: 'Portfolio' },
+                            { key: 'W', action: 'Watchlist' },
+                            { key: 'N', action: 'News' },
+                            { key: 'C', action: 'Compare' },
+                            { key: 'A', action: 'Admin' },
+                            { key: 'Esc', action: 'Go back' },
+                        ].map(s => (
+                            <div key={s.key} className="flex items-center gap-3">
+                                <kbd className="px-2 py-1 bg-charcoal-500 rounded text-xs text-silver-300 font-mono min-w-[40px] text-center">{s.key}</kbd>
+                                <span className="text-silver-400">{s.action}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* About */}
+                <div className="glass rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">About</h3>
+                    <p className="text-silver-400 text-sm leading-relaxed">
+                        PreciousMetals AI is an investment intelligence platform focused on gold ETFs, silver ETFs, 
+                        commodity ETFs, and precious metals-related stocks. It provides data-driven insights, 
+                        probability-based forecasts, and portfolio management tools to help investors make 
+                        informed decisions.
+                    </p>
+                    <p className="text-silver-500 text-xs mt-3">
+                        Data sourced from NSE India, BSE India, AMFI, SEBI, Angel One, and Edelweiss.
+                        All forecasts are probability-based and do not guarantee future performance.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+    
+    // ============================================================
+    // Main App
+    // ============================================================
+    function App() {
+        const [page, setPage] = useState('dashboard');
+        const [selectedAsset, setSelectedAsset] = useState(null);
+        const [searchQuery, setSearchQuery] = useState('');
+        const [sidebarOpen, setSidebarOpen] = useState(true);
+        
+        // Keyboard shortcuts
+        useEffect(() => {
+            const handler = (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                switch(e.key.toLowerCase()) {
+                    case 'd': setPage('dashboard'); break;
+                    case 's': setPage('search'); break;
+                    case 'p': setPage('portfolio'); break;
+                    case 'w': setPage('watchlist'); break;
+                    case 'n': setPage('news'); break;
+                    case 'c': setPage('compare'); break;
+                    case 'a': setPage('admin'); break;
+                    case 'escape': 
+                        setSelectedAsset(null);
+                        setPage('dashboard');
+                        break;
+                }
+            };
+            window.addEventListener('keydown', handler);
+            return () => window.removeEventListener('keydown', handler);
+        }, []);
+        
+        const selectAsset = (symbol) => {
+            setSelectedAsset(symbol);
+            setPage('asset-detail');
+        };
+        
+        const navItems = [
+            { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+            { id: 'search', label: 'Search', icon: '🔍' },
+            { id: 'portfolio', label: 'Portfolio', icon: '💼' },
+            { id: 'watchlist', label: 'Watchlist', icon: '⭐' },
+            { id: 'compare', label: 'Compare', icon: '⚖️' },
+            { id: 'news', label: 'News', icon: '📰' },
+            { id: 'admin', label: 'Admin', icon: '⚙️' },
+            { id: 'settings', label: 'Settings', icon: 'ℹ️' },
+        ];
+        
+        const renderPage = () => {
+            switch(page) {
+                case 'dashboard': return <DashboardPage onSelectAsset={selectAsset} />;
+                case 'asset-detail': return <AssetDetailPage symbol={selectedAsset} onBack={() => { setSelectedAsset(null); setPage('dashboard'); }} />;
+                case 'portfolio': return <PortfolioPage />;
+                case 'watchlist': return <WatchlistPage onSelectAsset={selectAsset} />;
+                case 'news': return <NewsPage />;
+                case 'search': return <SearchPage onSelectAsset={selectAsset} />;
+                case 'compare': return <ComparePage />;
+                case 'admin': return <AdminPage />;
+                case 'settings': return <SettingsPage />;
+                default: return <DashboardPage onSelectAsset={selectAsset} />;
+            }
+        };
+        
+        return (
+            <div className="min-h-screen flex">
+                {/* Sidebar */}
+                <aside className={`sidebar w-64 min-h-screen glass border-r border-white/5 flex flex-col fixed left-0 top-0 z-40 transition-all ${sidebarOpen ? 'w-64' : 'w-16'}`}>
+                    {/* Logo */}
+                    <div className="p-4 border-b border-white/5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 gradient-gold rounded-lg flex items-center justify-center text-black font-bold text-sm">PM</div>
+                            {sidebarOpen && (
+                                <div>
+                                    <div className="text-sm font-bold text-white">PreciousMetals</div>
+                                    <div className="text-xs text-gold-400">AI Platform</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Navigation */}
+                    <nav className="flex-1 py-2">
+                        {navItems.map(item => (
+                            <button key={item.id} onClick={() => setPage(item.id)}
+                                className={`nav-item w-full flex items-center gap-3 px-4 py-3 text-sm transition ${
+                                    page === item.id ? 'active' : 'text-silver-400 hover:text-white'
+                                }`}>
+                                <span className="text-lg">{item.icon}</span>
+                                {sidebarOpen && <span>{item.label}</span>}
+                            </button>
+                        ))}
+                    </nav>
+                    
+                    {/* Footer */}
+                    <div className="p-3 border-t border-white/5">
+                        <div className="text-xs text-silver-600 text-center">
+                            {sidebarOpen && <div>v1.0.0 • PreciousMetals AI</div>}
+                        </div>
+                    </div>
+                </aside>
+                
+                {/* Main Content */}
+                <main className="flex-1 ml-64 min-h-screen">
+                    {/* Top Bar */}
+                    <header className="sticky top-0 z-30 glass border-b border-white/5 px-6 py-3 flex items-center justify-between">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-silver-400 hover:text-white lg:hidden">
+                            ☰
+                        </button>
+                        <div className="flex-1 max-w-md mx-4">
+                            <input type="text" value={searchQuery} 
+                                onChange={e => { setSearchQuery(e.target.value); if(e.target.value) setPage('search'); }}
+                                placeholder="Search assets..." className="w-full text-sm" />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs text-silver-500 hidden md:block">
+                                {new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </span>
+                            <div className="w-2 h-2 rounded-full bg-green-400 pulse-glow" title="System Online"></div>
+                        </div>
+                    </header>
+                    
+                    {/* Page Content */}
+                    <div className="p-6">
+                        {renderPage()}
+                    </div>
+                    
+                    {/* Footer Disclaimer */}
+                    <footer className="px-6 py-4 border-t border-white/5">
+                        <p className="text-xs text-silver-600 text-center max-w-3xl mx-auto">
+                            ⚠️ This platform provides educational and informational content only and does not constitute financial advice. 
+                            Investment decisions should be made after consulting a qualified financial advisor. 
+                            Data sourced from NSE India, BSE India, AMFI, and SEBI.
+                        </p>
+                    </footer>
+                </main>
+                
+                {/* Mobile Bottom Nav */}
+                <nav className="mobile-nav fixed bottom-0 left-0 right-0 glass border-t border-white/5 z-50 justify-around py-2">
+                    {navItems.slice(0, 5).map(item => (
+                        <button key={item.id} onClick={() => setPage(item.id)}
+                            className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
+                                page === item.id ? 'text-gold-400' : 'text-silver-500'
+                            }`}>
+                            <span className="text-lg">{item.icon}</span>
+                            <span className="text-xs">{item.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
+        );
+    }
+    
+    // Render
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

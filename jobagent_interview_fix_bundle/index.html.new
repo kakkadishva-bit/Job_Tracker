@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobAgent - Smart Career Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo" onclick="showPage('home')">
+                <i class="fas fa-robot"></i>
+                <span>JobAgent</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#" class="nav-link active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i> Home</a>
+                <a href="#" class="nav-link" data-page="search" onclick="showPage('search')"><i class="fas fa-search"></i> Role Guide</a>
+                <a href="#" class="nav-link" data-page="resume" onclick="showPage('resume')"><i class="fas fa-file-alt"></i> Resume</a>
+                <a href="#" class="nav-link" data-page="interview" onclick="showPage('interview')"><i class="fas fa-comments"></i> Interview</a>
+                <a href="#" class="nav-link" data-page="career" onclick="showPage('career')"><i class="fas fa-chart-line"></i> Career</a>
+                <a href="#" class="nav-link" data-page="dashboard" onclick="showPage('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="#" class="nav-link" data-page="chat" onclick="showPage('chat')"><i class="fas fa-comments"></i> Chat</a>
+            </div>
+            <button class="nav-toggle" onclick="toggleNav()"><i class="fas fa-bars"></i></button>
+        </div>
+    </nav>
+
+    <!-- ═══ HOME PAGE ═══ -->
+    <div class="page active" id="page-home">
+        <section class="hero">
+            <div class="hero-bg"><div class="hero-particles"></div></div>
+            <div class="hero-content">
+                <div class="hero-badge"><i class="fas fa-robot"></i> Your Career Assistant</div>
+                <h1 class="hero-title">Explore Careers with <span class="gradient-text">Smart Intelligence</span></h1>
+                <p class="hero-subtitle">Get comprehensive role guides, analyze your resume with ATS scoring, close skill gaps, and prepare for interviews — all in one place.</p>
+                <div class="hero-search-box">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="heroSearchInput" placeholder="Enter job role (e.g., Frontend Developer, Data Scientist)..." onkeydown="if(event.key==='Enter')heroSearch()">
+                        <button class="btn btn-primary btn-search" onclick="heroSearch()">Explore Role</button>
+                    </div>
+                    <div class="hero-tags">
+                        <span class="tag" onclick="quickSearch('Python Developer')">Python Developer</span>
+                        <span class="tag" onclick="quickSearch('Frontend Developer')">Frontend Developer</span>
+                        <span class="tag" onclick="quickSearch('Data Scientist')">Data Scientist</span>
+                        <span class="tag" onclick="quickSearch('DevOps Engineer')">DevOps Engineer</span>
+                        <span class="tag" onclick="quickSearch('Full Stack Developer')">Full Stack Developer</span>
+                        <span class="tag" onclick="quickSearch('UI/UX Designer')">UI/UX Designer</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features-section">
+            <div class="container">
+                <h2 class="section-title">Everything You Need to Get Hired</h2>
+                <p class="section-subtitle">Comprehensive tools to supercharge your career journey</p>
+                <div class="features-grid">
+                    <div class="feature-card" onclick="showPage('search')">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <h3>Role Guides</h3>
+                        <p>Get detailed role overviews, responsibilities, required skills, salary ranges, and career growth paths for any position.</p>
+                    </div>
+                    <div class="feature-card" onclick="showPage('resume')">
+                        <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+                        <h3>Resume Analysis</h3>
+                        <p>Get your ATS score, identify weaknesses, and receive personalized improvement suggestions.</p>
+                    </div>
+                    <div class="feature-card" onclick="showPage('search')">
+                        <div class="feature-icon"><i class="fas fa-layer-group"></i></div>
+                        <h3>Role Expansion</h3>
+                        <p>Discover 20+ related job titles for any role you explore, expanding your opportunities.</p>
+                    </div>
+                    <div class="feature-card" onclick="showPage('resume')">
+                        <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+                        <h3>Skill Gap Analysis</h3>
+                        <p>Compare your skills against job requirements with a personalized learning roadmap.</p>
+                    </div>
+                    <div class="feature-card" onclick="showPage('interview')">
+                        <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                        <h3>Interview Prep</h3>
+                        <p>Access curated technical, HR, coding, and behavioral questions for any role.</p>
+                    </div>
+                    <div class="feature-card" onclick="showPage('career')">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Career Insights</h3>
+                        <p>View salary data, hiring trends, top companies, and future growth outlook.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="platforms-section">
+            <div class="container">
+                <h2 class="section-title">Find Opportunities On</h2>
+                <p class="section-subtitle">We help you discover roles, then redirect you to platforms with real job listings</p>
+                <div class="platforms-grid" id="platformsGrid">
+                    <!-- Platforms will be dynamically generated with clickable links -->
+                </div>
+            </div>
+        </section>
+
+        <!-- DISCLAIMER -->
+        <section class="disclaimer-section">
+            <div class="container">
+                <div class="disclaimer-card">
+                    <i class="fas fa-info-circle"></i>
+                    <p>This platform provides intelligent career guidance and role insights. Job searches redirect to external platforms where users can find real opportunities.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══ ROLE GUIDE SEARCH PAGE ═══ -->
+    <div class="page" id="page-search">
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-search"></i> Role Guide</h1>
+                <p>Explore comprehensive career insights for any role</p>
+            </div>
+        </div>
+        <div class="container page-body">
+            <div class="search-controls">
+                <div class="search-bar-large">
+                    <input type="text" id="searchInput" placeholder="Enter a role (e.g., Python Developer, Data Scientist)..." onkeydown="if(event.key==='Enter')performSearch()">
+                    <button class="btn btn-primary" onclick="performSearch()"><i class="fas fa-search"></i> Explore</button>
+                </div>
+                <div class="filter-row">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="remoteOnly" style="display:none;"> <span class="toggle-slider"></span> Remote Only
+                    </label>
+                    <select id="sortBy" onchange="sortGuides()">
+                        <option value="relevance">Sort by Relevance</option>
+                        <option value="salary">Sort by Salary</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Role Expansion Panel -->
+            <div class="role-expansion-panel" id="roleExpansionPanel" style="display:none;">
+                <h3><i class="fas fa-layer-group"></i> Related Roles <span class="badge" id="roleCount">0</span></h3>
+                <p class="hint">Click on related roles to explore their guides:</p>
+                <div class="role-tags" id="roleTags"></div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="searchLoading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Generating role guide...</p>
+            </div>
+
+            <!-- Results -->
+            <div class="results-header" id="resultsHeader" style="display:none;">
+                <h2 id="resultsTitle"></h2>
+                <p id="resultsSubtitle"></p>
+            </div>
+            <div id="platformButtonsContainer" style="display:none;"></div>
+            <div class="guide-grid" id="guideGrid"></div>
+        </div>
+    </div>
+
+    <!-- ═══ RESUME ANALYSIS PAGE ═══ -->
+    <div class="page" id="page-resume">
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-file-alt"></i> Resume Analysis</h1>
+                <p>Upload your resume for ATS scoring, skill gap analysis, and optimization tips</p>
+            </div>
+        </div>
+        <div class="container page-body">
+            <div class="resume-upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <h3>Upload Resume</h3>
+                    <p>Drag & drop or click to upload (PDF, DOCX, TXT)</p>
+                    <input type="file" id="resumeFile" accept=".pdf,.docx,.txt" onchange="handleFileUpload(this)" style="display:none;">
+                    <button class="btn btn-outline" onclick="document.getElementById('resumeFile').click()">
+                        <i class="fas fa-upload"></i> Choose File
+                    </button>
+                </div>
+                <div class="or-divider"><span>OR</span></div>
+                <div class="paste-resume">
+                    <label>Paste your resume text:</label>
+                    <textarea id="resumeText" rows="10" placeholder="Paste your resume content here..."></textarea>
+                </div>
+                <div class="target-role-input">
+                    <label>Target Role (optional — for skill gap analysis):</label>
+                    <input type="text" id="targetRole" placeholder="e.g., Python Developer, Data Scientist">
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="analyzeResume()" id="analyzeBtn">
+                    <i class="fas fa-magic"></i> Analyze Resume
+                </button>
+            </div>
+
+            <div class="loading" id="resumeLoading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Analyzing your resume...</p>
+            </div>
+
+            <div id="resumeResults" style="display:none;"></div>
+        </div>
+    </div>
+
+        <!-- ═══ INTERVIEW PAGE ═══ -->
+    <div class="page" id="page-interview">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-comments"></i> AI Interview Practice</h1>
+                <p>Adaptive interview simulation using your resume, target job, and conversation history.</p>
+            </div>
+            <!-- Replace ONLY the existing interview setup block with this. -->
+            <div class="interview-setup" id="interviewSetupPanel">
+              <div class="card"><div class="card-body">
+                <h3><i class="fas fa-sliders-h"></i> Start a Real Interview</h3>
+                <div class="form-row">
+                  <div class="form-group"><label>Target Role *</label><input type="text" id="interviewRole" placeholder="e.g. ML Engineer"></div>
+                  <div class="form-group"><label>Company (optional)</label><input type="text" id="interviewCompany" placeholder="Company name"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Experience Level</label><select id="interviewLevel"><option value="junior">Junior (0-2 years)</option><option value="mid">Mid (2-5 years)</option><option value="senior">Senior (5-8 years)</option><option value="lead">Lead/Staff (8+ years)</option></select></div>
+                  <div class="form-group"><label>Interview Mode</label><select id="interviewMode"><option value="quick">Quick (5-10 questions)</option><option value="standard" selected>Standard (10-20 questions)</option><option value="deep">Deep (20-35 questions)</option></select></div>
+                </div>
+                <div class="form-group"><label>Job Description (recommended)</label><textarea id="interviewJD" rows="5" placeholder="Paste the actual job description. The interviewer will use only its stated requirements."></textarea></div>
+                <div class="form-group"><label>Required Skills (optional)</label><input type="text" id="interviewRequiredSkills" placeholder="Python, Machine Learning, RAG, FastAPI"></div>
+                <div class="form-group"><label>Resume (optional if already analyzed)</label><textarea id="interviewResumeContext" rows="4" placeholder="Paste resume text, or analyze your resume first and JobAgent will reuse the last analysis."></textarea></div>
+                <button class="btn btn-primary btn-lg" id="startInterviewBtn" onclick="startAdaptiveInterview()"><i class="fas fa-play-circle"></i> Start Interview</button>
+                <p class="input-hint">Questions adapt to your resume, JD, previous answers and interview knowledge.</p>
+              </div></div>
+            </div>
+            <div class="interview-chat-panel" id="interviewChatPanel" style="display:none;">
+                <div class="interview-chat-header">
+                    <h3><i class="fas fa-robot"></i> AI Interviewer <span class="chat-status" id="interviewStatus">Active</span></h3>
+                    <div><span class="turn-counter" id="interviewTurnCounter">Turn: 0</span> <button class="btn btn-sm btn-danger" onclick="endAdaptiveInterview()"><i class="fas fa-stop"></i> End</button></div>
+                </div>
+                <div class="interview-chat-messages" id="interviewChatMessages"></div>
+                <div class="interview-chat-input">
+                    <textarea id="interviewAnswerInput" rows="2" placeholder="Type your answer... (Enter to send)" onkeydown="handleInterviewKeydown(event)"></textarea>
+                    <button class="btn btn-primary" id="sendAnswerBtn" onclick="sendInterviewAnswer()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+            <div class="interview-report-panel" id="interviewReportPanel" style="display:none;">
+                <div class="card"><div class="card-body" id="interviewReportContent"></div></div>
+            </div>
+        </div>
+    </div>
+
+<!-- ═══ CAREER INSIGHTS PAGE ═══ -->
+    <div class="page" id="page-career">
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-chart-line"></i> Career Insights</h1>
+                <p>Salary data, hiring trends, and growth outlook for your role</p>
+            </div>
+        </div>
+        <div class="container page-body">
+            <div class="interview-controls">
+                <div class="search-bar-large">
+                    <input type="text" id="careerRoleInput" placeholder="Enter role (e.g., Data Scientist, DevOps Engineer)..." onkeydown="if(event.key==='Enter')loadCareerInsights()">
+                    <button class="btn btn-primary" onclick="loadCareerInsights()"><i class="fas fa-chart-line"></i> Get Insights</button>
+                </div>
+            </div>
+            <div class="loading" id="careerLoading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Loading career insights...</p>
+            </div>
+            <div id="careerResults" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ═══ DASHBOARD PAGE ═══ -->
+    <div class="page" id="page-dashboard">
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                <p>Track your career exploration progress</p>
+            </div>
+        </div>
+        <div class="container page-body">
+            <div class="dashboard-stats" id="dashboardStats"></div>
+            <div class="dashboard-grid" id="dashboardGrid"></div>
+        </div>
+    </div>
+
+    <!-- ═══ CHAT PAGE ═══ -->
+    <div class="page" id="page-chat">
+        <div class="page-header">
+            <div class="container">
+                <h1><i class="fas fa-comments"></i> Community Chat</h1>
+                <p>Connect with other job seekers, share experiences, and get feedback</p>
+            </div>
+        </div>
+        <div class="container page-body">
+            <!-- Feedback Notification Banner -->
+            <div class="chat-feedback-banner" id="chatFeedbackBanner" style="display:none;">
+                <i class="fas fa-bullhorn"></i>
+                <div class="chat-feedback-text">
+                    <strong>We value your feedback!</strong> Share your experience with JobAgent and help us improve. 
+                    <a href="#" onclick="openFeedbackModal();return false;">Give Feedback</a>
+                </div>
+                <button class="chat-feedback-close" onclick="document.getElementById('chatFeedbackBanner').style.display='none'"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Privacy Policy Screen (shown first) -->
+            <div id="chatPolicyScreen">
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <div class="policy-icon"><i class="fas fa-shield-halved"></i></div>
+                        <h2>Community Chat Guidelines</h2>
+                        <p>Please read and accept our privacy & conduct policy to join the chat</p>
+                    </div>
+                    <div class="policy-content" id="policyContent">
+                        <!-- Policy sections will be rendered by JS -->
+                    </div>
+                    <div class="policy-disclaimer" id="policyDisclaimer"></div>
+                    <div class="policy-actions">
+                        <button class="btn btn-primary btn-lg" onclick="acceptChatPolicy()" id="acceptPolicyBtn">
+                            <i class="fas fa-check-circle"></i> I Agree & Accept
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface (shown after policy acceptance) -->
+            <div id="chatInterface" style="display:none;">
+                <div class="chat-container">
+                    <!-- Chat Sidebar -->
+                    <div class="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <div class="chat-status-dot"></div>
+                            <span>Community Members</span>
+                            <span class="chat-member-count" id="chatMemberCount">0</span>
+                        </div>
+                        <div class="chat-members-list" id="chatMembersList">
+                            <div class="chat-loading-members">Loading members...</div>
+                        </div>
+                        <div class="chat-sidebar-actions">
+                            <button class="chat-action-btn" onclick="openFeedbackModal()">
+                                <i class="fas fa-star"></i> Give App Feedback
+                            </button>
+                            <button class="chat-action-btn" onclick="showPolicyAgain()">
+                                <i class="fas fa-shield-halved"></i> View Policy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Main Area -->
+                    <div class="chat-main">
+                        <div class="chat-header">
+                            <div class="chat-header-left">
+                                <i class="fas fa-users chat-header-icon"></i>
+                                <div>
+                                    <strong>JobAgent Community</strong>
+                                    <div class="chat-header-subtitle"><span class="chat-online-dot"></span> <span id="chatOnlineCount">0</span> members online</div>
+                                </div>
+                            </div>
+                            <div class="chat-header-right">
+                                <i class="fas fa-info-circle chat-info-icon" title="Professional chat only - No spam, no abuse, no off-topic messages" style="cursor:pointer;" onclick="showPolicyAgain()"></i>
+                            </div>
+                        </div>
+
+                        <!-- Messages Area -->
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-loading-messages">
+                                <div class="spinner"></div>
+                                <p>Loading messages...</p>
+                            </div>
+                        </div>
+
+                        <!-- Message Input -->
+                        <div class="chat-input-area">
+                            <div class="chat-quick-tags">
+                                <span class="chat-quick-tag" onclick="insertQuickTag('#JobSearch')">#JobSearch</span>
+                                <span class="chat-quick-tag" onclick="insertQuickTag('#Interview')">#Interview</span>
+                                <span class="chat-quick-tag" onclick="insertQuickTag('#CareerAdvice')">#CareerAdvice</span>
+                                <span class="chat-quick-tag" onclick="insertQuickTag('#Resume')">#Resume</span>
+                                <span class="chat-quick-tag" onclick="insertQuickTag('#Feedback')">#Feedback</span>
+                            </div>
+                            <div class="chat-input-row">
+                                <input type="text" id="chatMessageInput" placeholder="Type a professional message... (max 1000 chars)" maxlength="1000" onkeydown="if(event.key==='Enter')sendChatMessage()">
+                                <button class="btn btn-primary" onclick="sendChatMessage()" id="sendChatBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="chat-input-hint">
+                                <i class="fas fa-info-circle"></i> Keep messages professional. Off-topic or spam messages may lead to removal from the group.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="feedback-modal-backdrop" id="feedbackModal" style="display:none;" onclick="if(event.target===this)closeFeedbackModal()">
+        <div class="feedback-modal">
+            <div class="feedback-modal-header">
+                <h3><i class="fas fa-star"></i> Share Your Feedback</h3>
+                <button class="feedback-modal-close" onclick="closeFeedbackModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="feedback-modal-body">
+                <div class="feedback-rating" id="feedbackRatingStars">
+                    <i class="fas fa-star" data-rating="1" onclick="setFeedbackRating(1)"></i>
+                    <i class="fas fa-star" data-rating="2" onclick="setFeedbackRating(2)"></i>
+                    <i class="fas fa-star" data-rating="3" onclick="setFeedbackRating(3)"></i>
+                    <i class="fas fa-star" data-rating="4" onclick="setFeedbackRating(4)"></i>
+                    <i class="fas fa-star" data-rating="5" onclick="setFeedbackRating(5)"></i>
+                </div>
+                <textarea id="feedbackComment" rows="4" placeholder="Share your experience with JobAgent — what you love, what can be improved..."></textarea>
+                <div class="feedback-tags">
+                    <span class="feedback-tag" onclick="setFeedbackTag(this,'Great App')">Great App</span>
+                    <span class="feedback-tag" onclick="setFeedbackTag(this,'Needs Improvement')">Needs Improvement</span>
+                    <span class="feedback-tag" onclick="setFeedbackTag(this,'Bug Report')">Bug Report</span>
+                    <span class="feedback-tag" onclick="setFeedbackTag(this,'Feature Request')">Feature Request</span>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="submitChatFeedback()" id="submitFeedbackBtn">
+                    <i class="fas fa-paper-plane"></i> Submit Feedback
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ GLOBAL DISCLAIMER ═══ -->
+    <div class="global-disclaimer" id="globalDisclaimer">
+        <div class="disclaimer-content">
+            <i class="fas fa-info-circle"></i>
+            <span>This platform provides intelligent career guidance and role insights. Job searches redirect to external platforms where users can find real opportunities.</span>
+            <button class="disclaimer-close" onclick="document.getElementById('globalDisclaimer').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 JobAgent. Your career assistant.</p>
+            <p class="footer-disclaimer">This platform provides intelligent career guidance. Salary data and role insights are estimates based on industry averages.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

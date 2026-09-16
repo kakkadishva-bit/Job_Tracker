@@ -1,0 +1,1 @@
+"""services package - local intelligence layers for JobAgent."""

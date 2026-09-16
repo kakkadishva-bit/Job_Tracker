@@ -1,0 +1,167 @@
+{
+  "name": "JobAgent - Job Recommendations Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "value": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule1",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "user_profiles",
+        "columns": "user_id, skills, preferred_roles, experience_level, location",
+        "where": {
+          "conditions": [
+            {
+              "column": "updated_at",
+              "operator": "gte",
+              "value": "={{ $now.minus({days: 7}).toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "postgres1",
+      "name": "Get Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You are a job recommendation engine. Match users with relevant job opportunities based on their profile."
+            },
+            {
+              "role": "user",
+              "content": "Generate job recommendations for:\n\nSkills: {{ $json.skills }}\nPreferred Roles: {{ $json.preferred_roles }}\nExperience Level: {{ $json.experience_level }}\nLocation: {{ $json.location }}\n\nProvide 5-10 job recommendations in JSON format with:\n1. job_title\n2. company\n3. location\n4. match_score (0-100)\n5. reason (why this job matches)\n6. required_skills (array)\n7. salary_range\n8. apply_link\n\nFocus on accuracy. Only recommend roles that truly match the user's profile."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "id": "aiAgent1",
+      "name": "AI Job Matching",
+      "type": "n8n-nodes-base.googleAI",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Structure recommendations\nconst aiResponse = $json.message.content;\nlet recommendations;\n\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  recommendations = jsonMatch ? JSON.parse(jsonMatch[0]) : { jobs: [] };\n} catch (e) {\n  recommendations = { jobs: [], error: 'Failed to parse' };\n}\n\n// Add user context\nrecommendations.user_id = $json.user_id;\nrecommendations.generated_at = new Date().toISOString();\n\nreturn {\n  json: recommendations\n};"
+      },
+      "id": "code1",
+      "name": "Structure Recommendations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "job_recommendations",
+        "columns": "user_id, recommendations_data, created_at",
+        "values": "={{ $json.user_id }}, '{{ JSON.stringify($json) }}', NOW()"
+      },
+      "id": "postgres2",
+      "name": "Save Recommendations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.user_email }}",
+        "subject": "Your Daily Job Recommendations - JobAgent",
+        "body": "Hi {{ $json.user_name }},\n\nWe found {{ $json.job_count }} new job opportunities matching your profile:\n\n{{ $json.job_list }}\n\nLogin to view full details: http://localhost:5000\n\nBest regards,\nJobAgent Team",
+        "options": {
+          "format": "plain"
+        }
+      },
+      "id": "email1",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Users": {
+      "main": [
+        [
+          {
+            "node": "AI Job Matching",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Job Matching": {
+      "main": [
+        [
+          {
+            "node": "Structure Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Save Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

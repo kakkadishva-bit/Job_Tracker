@@ -1,0 +1,100 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+job_agent.log
+logs/
+instance/logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CSV / Excel outputs (scraped data)
+jobs.csv
+*.csv
+*.xlsx
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases / SQLite
+*.sqlite
+*.sqlite3
+instance/jobagent.db
+instance/*.db
+*.db
+
+# Secrets / credentials
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Cache files
+.cache/
+.cached/
+__pycache__/.cache
+
+# Uploaded resumes / storage
+storage/resume_uploads/
+storage/uploads/
+tests/_tmp_resumes/
+tests/data/
+
+# Local model files
+models/*.pt
+models/*.bin
+models/*.safetensors
+models/*.gguf
+models/model_*.pth
+*.ggv3
+
+# Frontend build output
+build/
+dist/
+.out/
+.next/
+.nuxt/
+
+# Node.js dependencies
+node_modules/
+
+# n8n / other tooling
+.n8n/
+
+# Debug / diagnostic output
+_*.txt
+debug_*.html
+
+# Misc
+.pytest_cache/
+.mypy_cache/
+.venv.bak/
+*.egg-info/
+.eggs/

@@ -1,0 +1,230 @@
+{
+  "name": "JobAgent - Feedback Processing Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "feedback",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedMethods": "POST"
+        }
+      },
+      "id": "webhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You are a feedback analysis expert. Analyze user feedback for sentiment, priority, and categorization."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this user feedback:\n\nRating: {{ $json.body.rating }}/5\nComment: {{ $json.body.comment }}\nCategory: {{ $json.body.category }}\n\nProvide analysis in JSON:\n1. sentiment (positive/neutral/negative)\n2. priority (low/medium/high/critical)\n3. category_suggested (feature/bug/general/improvement)\n4. key_points (array of main concerns/feedback)\n5. action_required (boolean)\n6. suggested_response (professional acknowledgment)\n7. tags (array for categorization)\n\nBe objective and helpful."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "id": "aiAgent1",
+      "name": "AI Feedback Analysis",
+      "type": "n8n-nodes-base.googleAI",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process feedback analysis\nconst aiResponse = $json.message.content;\nlet analysis;\n\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};\n} catch (e) {\n  analysis = { sentiment: 'neutral', priority: 'medium' };\n}\n\n// Combine with original data\nconst feedbackData = {\n  ...$json.body,\n  analysis: analysis,\n  processed_at: new Date().toISOString(),\n  status: analysis.priority === 'critical' ? 'urgent' : 'new'\n};\n\nreturn {\n  json: feedbackData\n};"
+      },
+      "id": "code1",
+      "name": "Process Feedback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "feedback",
+        "columns": "user_id, name, email, rating, comment, category, sentiment, priority, analysis_data, status, created_at",
+        "values": "={{ $json.user_id || null }}, {{ $json.name }}, {{ $json.email }}, {{ $json.rating }}, '{{ $json.comment }}', {{ $json.category }}, {{ $json.analysis.sentiment }}, {{ $json.analysis.priority }}, '{{ JSON.stringify($json.analysis) }}', {{ $json.status }}, NOW()"
+      },
+      "id": "postgres1",
+      "name": "Save Feedback",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "type": "string"
+          },
+          "conditions": [
+            {
+              "id": "if1",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "critical",
+              "leftType": "string",
+              "rightType": "string",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if1",
+      "name": "Critical Priority?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "toEmail": "admin@jobagent.com",
+        "subject": "🚨 Critical Feedback Alert - JobAgent",
+        "body": "Critical feedback received:\n\nUser: {{ $json.name }}\nRating: {{ $json.rating }}/5\nComment: {{ $json.comment }}\nPriority: {{ $json.priority }}\n\nPlease review immediately.",
+        "options": {
+          "format": "plain"
+        }
+      },
+      "id": "email1",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.email }}",
+        "subject": "Thank you for your feedback - JobAgent",
+        "body": "Hi {{ $json.name }},\n\nThank you for your feedback! We appreciate you taking the time to share your thoughts.\n\n{{ $json.analysis.suggested_response }}\n\nBest regards,\nJobAgent Team",
+        "options": {
+          "format": "plain"
+        }
+      },
+      "id": "email2",
+      "name": "Send Acknowledgment",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Feedback submitted successfully\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Feedback Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Feedback Analysis": {
+      "main": [
+        [
+          {
+            "node": "Process Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Feedback": {
+      "main": [
+        [
+          {
+            "node": "Save Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Feedback": {
+      "main": [
+        [
+          {
+            "node": "Critical Priority?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Priority?": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Acknowledgment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Acknowledgment": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

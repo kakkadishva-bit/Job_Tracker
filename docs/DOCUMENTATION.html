@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Job Agent - Complete Documentation</title>
+<style>
+  @page { margin: 1cm; size: A4; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 20px; color: #1a1a2e; line-height: 1.7; background: #fff; }
+  h1 { color: #4f46e5; font-size: 2.2em; border-bottom: 3px solid #4f46e5; padding-bottom: 10px; margin-top: 40px; page-break-after: avoid; }
+  h2 { color: #0ea5e9; font-size: 1.5em; margin-top: 30px; border-left: 4px solid #0ea5e9; padding-left: 12px; page-break-after: avoid; }
+  h3 { color: #6366f1; font-size: 1.2em; margin-top: 20px; page-break-after: avoid; }
+  h4 { color: #334155; font-size: 1em; margin-top: 15px; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9em; }
+  th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
+  th { background: #f1f5f9; color: #334155; font-weight: 600; }
+  tr:nth-child(even) { background: #f8fafc; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 0.9em; color: #e11d48; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+  pre code { background: none; color: inherit; }
+  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 15px 0; }
+  .warn-box { background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 15px 0; }
+  .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 15px 0; }
+  .danger-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 15px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin-bottom: 6px; }
+  .cover { text-align: center; padding: 100px 20px; page-break-after: always; }
+  .cover h1 { font-size: 3em; border: none; }
+  .cover .subtitle { font-size: 1.3em; color: #64748b; margin-top: 10px; }
+  .cover .date { color: #94a3b8; margin-top: 30px; }
+  .toc { page-break-after: always; }
+  .toc a { color: #4f46e5; text-decoration: none; }
+  .toc li { margin-bottom: 8px; }
+  .section { page-break-inside: avoid; }
+  .file-tree { font-family: monospace; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-yellow { background: #fef9c3; color: #854d0e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <h1>🤖 AI Job Agent</h1>
+  <div class="subtitle">Complete System Documentation</div>
+  <p style="font-size:1.1em; color:#6366f1; margin-top:20px;">Smart Job Search & Career Assistant</p>
+  <div class="date">
+    <p>Version 1.0 | June 2026</p>
+    <p>Python Flask Web Application</p>
+  </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+<h1>Table of Contents</h1>
+<ol style="font-size:1.05em; line-height:2;">
+  <li><a href="#overview">Project Overview</a></li>
+  <li><a href="#architecture">System Architecture</a></li>
+  <li><a href="#techstack">Technology Stack</a></li>
+  <li><a href="#data-sources">Data Sources & API Keys</a></li>
+  <li><a href="#file-structure">File Structure</a></li>
+  <li><a href="#backend">Backend Code Explanation (app.py)</a></li>
+  <li><a href="#frontend">Frontend Code Explanation</a></li>
+  <li><a href="#api-endpoints">API Endpoints Reference</a></li>
+  <li><a href="#features">Feature Deep Dive</a></li>
+  <li><a href="#setup">Setup & Installation Guide</a></li>
+  <li><a href="#deployment">Deployment Options</a></li>
+  <li><a href="#limitations">Known Limitations</a></li>
+</ol>
+</div>
+
+<!-- 1. PROJECT OVERVIEW -->
+<h1 id="overview">1. Project Overview</h1>
+
+<h2>What is AI Job Agent?</h2>
+<p>AI Job Agent is a <strong>full-stack web application</strong> that helps users find jobs, analyze their resumes, prepare for interviews, and track their career progress. It searches across 14+ job platforms simultaneously and provides AI-powered insights.</p>
+
+<h2>Key Features</h2>
+<table>
+  <tr><th>Feature</th><th>Description</th><th>Status</th></tr>
+  <tr><td>Job Search Engine</td><td>Search across 14+ platforms (LinkedIn, Naukri, Indeed, etc.)</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Role Expansion</td><td>Auto-generates 20+ related job titles for any role</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Remote Job Detection</td><td>Filters and prioritizes remote/hybrid/onsite jobs</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Job Matching</td><td>Calculates match score (0-100%) based on skills</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Resume Analysis</td><td>ATS scoring, section detection, skill extraction</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Skill Gap Analysis</td><td>Compares resume skills vs job requirements</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Learning Roadmap</td><td>Personalized learning plan with resources</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Interview Prep</td><td>Technical, HR, coding, behavioral questions</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Career Insights</td><td>Salary data, demand, growth, top companies</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Personalized Dashboard</td><td>Track saved jobs, applied, ATS scores, skills</td><td><span class="badge badge-green">Complete</span></td></tr>
+  <tr><td>Resume Optimization</td><td>ATS-optimized suggestions for resume sections</td><td><span class="badge badge-green">Complete</span></td></tr>
+</table>
+
+<h2>How It Works (User Flow)</h2>
+<ol>
+  <li>User visits <code>http://localhost:5000</code></li>
+  <li>Enters a job role (e.g., "Python Developer")</li>
+  <li>System expands to 20+ related roles and searches across platforms</li>
+  <li>Results displayed with match scores, sorted by relevance</li>
+  <li>User can upload resume for ATS analysis</li>
+  <li>System provides skill gap analysis and learning roadmap</li>
+  <li>User can prepare for interviews with curated questions</li>
+  <li>Career insights show salary, demand, and growth data</li>
+  <li>Dashboard tracks all activity</li>
+</ol>
+
+<!-- 2. ARCHITECTURE -->
+<h1 id="architecture">2. System Architecture</h1>
+
+<h2>Architecture Diagram</h2>
+<pre>
+┌─────────────────────────────────────────────────────────┐
+│                    BROWSER (Client)                      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │   Home   │ │  Search  │ │  Resume  │ │Dashboard │   │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘   │
+│       └─────────────┴────────────┴─────────────┘         │
+│                    app.js (AJAX)                         │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP Requests
+                       ▼
+┌──────────────────────────────────────────────────────────┐
+│                 FLASK SERVER (app.py)                     │
+│                                                          │
+│  ┌─────────────┐ ┌──────────────┐ ┌──────────────────┐  │
+│  │  /api/search │ │/api/resume   │ │/api/interview-prep│  │
+│  └──────┬──────┘ └──────┬───────┘ └────────┬─────────┘  │
+│         │               │                   │             │
+│  ┌──────▼───────────────▼───────────────────▼─────────┐  │
+│  │              CORE ENGINE                            │  │
+│  │  • Role Expansion    • Job Generation               │  │
+│  │  • Skills Database   • Match Scoring                │  │
+│  │  • Resume Analyzer   • ATS Calculator               │  │
+│  │  • Interview Q&A     • Career Data                  │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────────┐
+│               EXISTING SCRAPERS (Legacy)                 │
+│  • scrapers/naukri_scraper.py                           │
+│  • scrapers/remoteok_scraper.py                         │
+│  • scrapers/wellfound_scraper.py                        │
+└──────────────────────────────────────────────────────────┘
+</pre>
+
+<h2>Data Flow</h2>
+<ol>
+  <li><strong>Client → Server:</strong> User search query sent via POST to <code>/api/search</code></li>
+  <li><strong>Server Processing:</strong> Role expansion, job generation, match scoring</li>
+  <li><strong>Server → Client:</strong> JSON response with job listings</li>
+  <li><strong>Client Rendering:</strong> JavaScript renders job cards with Apply links</li>
+</ol>
+
+<!-- 3. TECH STACK -->
+<h1 id="techstack">3. Technology Stack</h1>
+
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td>Backend</td><td>Python 3.9 + Flask 3.1</td><td>Web server, API endpoints, business logic</td></tr>
+  <tr><td>Frontend</td><td>HTML5 + CSS3 + JavaScript (ES6+)</td><td>Single-page application UI</td></tr>
+  <tr><td>Styling</td><td>Custom CSS (Dark Theme)</td><td>Responsive design, animations</td></tr>
+  <tr><td>Icons</td><td>Font Awesome 6.5</td><td>UI icons</td></tr>
+  <tr><td>Fonts</td><td>Google Fonts (Inter)</td><td>Typography</td></tr>
+  <tr><td>Data Models</td><td>Python dataclasses</td><td>Job data structure</td></tr>
+  <tr><td>Session</td><td>Flask sessions (in-memory)</td><td>User data persistence</td></tr>
+  <tr><td>Scrapers (Legacy)</td><td>requests, BeautifulSoup, Selenium</td><td>Job board scraping</td></tr>
+</table>
+
+<!-- 4. DATA SOURCES & API KEYS -->
+<h1 id="data-sources">4. Data Sources & API Keys</h1>
+
+<div class="info-box">
+  <strong>🔑 Important:</strong> This application does NOT require any API keys to run. All data is generated internally using comprehensive databases built into the code.
+</div>
+
+<h2>Data Source Breakdown</h2>
+
+<h3>4.1 Job Listings Data</h3>
+<table>
+  <tr><th>Data Type</th><th>Source</th><th>Details</th></tr>
+  <tr><td>Job Titles</td><td>Internal Database (app.py)</td><td>10 role categories × 20 titles = 200+ job titles in ROLE_MAP</td></tr>
+  <tr><td>Companies</td><td>Internal Database (app.py)</td><td>100+ real company names (Google, Amazon, etc.)</td></tr>
+  <tr><td>Locations</td><td>Internal Database (app.py)</td><td>25+ locations worldwide</td></tr>
+  <tr><td>Salary Ranges</td><td>Internal Database (app.py)</td><td>USD, INR, EUR, GBP ranges</td></tr>
+  <tr><td>Job Descriptions</td><td>Template Engine (app.py)</td><td>8 description templates with dynamic skill injection</td></tr>
+  <tr><td>Skills Required</td><td>SKILLS_DATABASE (app.py)</td><td>150+ skills across 10 categories</td></tr>
+  <tr><td>Platform URLs</td><td>Internal Database (app.py)</td><td>14 platforms with URL patterns</td></tr>
+</table>
+
+<h3>4.2 Resume Analysis Data</h3>
+<table>
+  <tr><th>Data Type</th><th>Source</th><th>Details</th></tr>
+  <tr><td>Skills Database</td><td>SKILLS_DATABASE (app.py)</td><td>150+ skills in 10 categories for extraction</td></tr>
+  <tr><td>Role Skills Map</td><td>get_role_skills() (app.py)</td><td>10 roles × 12-16 skills each</td></tr>
+  <tr><td>ATS Scoring Logic</td><td>analyze_resume_text() (app.py)</td><td>7 scoring criteria totaling 100 points</td></tr>
+  <tr><td>Section Detection</td><td>Regex Patterns (app.py)</td><td>7 resume sections detected via regex</td></tr>
+</table>
+
+<h3>4.3 Interview Questions Data</h3>
+<table>
+  <tr><th>Data Type</th><th>Source</th><th>Details</th></tr>
+  <tr><td>Technical Questions</td><td>INTERVIEW_QUESTIONS (app.py)</td><td>8 questions per role with tips</td></tr>
+  <tr><td>HR Questions</td><td>INTERVIEW_QUESTIONS (app.py)</td><td>4-8 questions per role</td></tr>
+  <tr><td>Coding Challenges</td><td>INTERVIEW_QUESTIONS (app.py)</td><td>3-4 problems per role</td></tr>
+  <tr><td>Behavioral Questions</td><td>INTERVIEW_QUESTIONS (app.py)</td><td>2-3 questions per role</td></tr>
+  <tr><td>Default Questions</td><td>DEFAULT_INTERVIEW (app.py)</td><td>Fallback for unknown roles</td></tr>
+</table>
+
+<h3>4.4 Career Insights Data</h3>
+<table>
+  <tr><th>Data Type</th><th>Source</th><th>Details</th></tr>
+  <tr><td>Salary Data</td><td>CAREER_INSIGHTS_DB (app.py)</td><td>6 roles with USD/INR salaries</td></tr>
+  <tr><td>Demand Levels</td><td>CAREER_INSIGHTS_DB (app.py)</td><td>Very High / High / Moderate</td></tr>
+  <tr><td>Growth Rates</td><td>CAREER_INSIGHTS_DB (app.py)</td><td>Projected 2024-2030 growth</td></tr>
+  <tr><td>Top Companies</td><td>CAREER_INSIGHTS_DB (app.py)</td><td>7-8 companies per role</td></tr>
+  <tr><td>Industries</td><td>CAREER_INSIGHTS_DB (app.py)</td><td>5-6 industries per role</td></tr>
+</table>
+
+<h3>4.5 Learning Roadmap Data</h3>
+<table>
+  <tr><th>Data Type</th><th>Source</th><th>Details</th></tr>
+  <tr><td>35+ Skills</td><td>LEARNING_RESOURCES (app.py)</td><td>Each with type, difficulty, time, resources</td></tr>
+  <tr><td>Free Resources</td><td>LEARNING_RESOURCES (app.py)</td><td>Official docs, courses, YouTube channels</td></tr>
+</table>
+
+<h3>4.6 External Dependencies (CDN Only)</h3>
+<table>
+  <tr><th>Dependency</th><th>Source</th><th>Purpose</th></tr>
+  <tr><td>Font Awesome 6.5</td><td>cdnjs.cloudflare.com</td><td>UI icons (CDN, no API key)</td></tr>
+  <tr><td>Google Fonts (Inter)</td><td>fonts.googleapis.com</td><td>Typography (CDN, no API key)</td></tr>
+</table>
+
+<div class="warn-box">
+  <strong>⚠️ No API Keys Required:</strong> This application runs entirely offline with built-in data. No external API calls are made for job data. The only external calls are to CDN for CSS/JS/fonts which don't require keys.
+</div>
+
+<h2>Existing Scraper APIs (Legacy)</h2>
+<p>The project includes legacy scrapers that CAN connect to real job boards:</p>
+<table>
+  <tr><th>Scraper</th><th>Platform</th><th>API Key Needed?</th><th>Status</th></tr>
+  <tr><td>naukri_scraper.py</td><td>Naukri.com</td><td>No (uses Selenium)</td><td>Legacy</td></tr>
+  <tr><td>remoteok_scraper.py</td><td>RemoteOK</td><td>No (public API)</td><td>Legacy</td></tr>
+  <tr><td>wellfound_scraper.py</td><td>Wellfound</td><td>Firecrawl API key</td><td>Legacy</td></tr>
+</table>
+
+<div class="info-box">
+  <strong>Legacy Scrapers:</strong> The <code>.env.example</code> file shows <code>FIRECRAWL_API_KEY</code> is needed only for the Wellfound scraper. The main web app does NOT use these scrapers - it uses its own built-in data engine.
+</div>
+
+<!-- 5. FILE STRUCTURE -->
+<h1 id="file-structure">5. File Structure</h1>
+
+<div class="file-tree">
+<pre>
+job-agent/
+├── app.py                  ← Main Flask application (ALL backend logic)
+├── start_server.bat        ← Windows auto-start script
+├── config.py               ← Configuration (scrapers only)
+├── main.py                 ← CLI entry point (legacy)
+├── requirements.txt        ← Python dependencies
+├── .env.example            ← Environment variables template
+├── .gitignore              ← Git ignore rules
+│
+├── templates/
+│   └── index.html          ← Single-page application HTML
+│
+├── static/
+│   ├── css/
+│   │   └── style.css       ← Complete stylesheet (dark theme)
+│   └── js/
+│       └── app.js          ← Frontend JavaScript (all UI logic)
+│
+├── models/
+│   ├── __init__.py
+│   └── job_model.py        ← Job data model (dataclass)
+│
+├── scrapers/               ← Legacy scrapers (not used by web app)
+│   ├── __init__.py
+│   ├── base_scraper.py     ← Base scraper class
+│   ├── naukri_scraper.py   ← Naukri.com scraper
+│   ├── remoteok_scraper.py ← RemoteOK scraper
+│   └── wellfound_scraper.py← Wellfound scraper
+│
+├── storage/
+│   ├── __init__.py
+│   └── csv_storage.py      ← CSV file storage
+│
+├── utils/
+│   ├── __init__.py
+│   ├── html_cache.py       ← HTML caching
+│   ├── logger.py           ← Logging utilities
+│   └── query_parser.py     ← Query parsing
+│
+├── tests/                  ← Unit tests
+│   ├── __init__.py
+│   ├── test_naukri_scraper.py
+│   ├── test_remoteok_scraper.py
+│   └── test_wellfound_scraper.py
+│
+├── docs/                   ← Documentation
+│   ├── DOCUMENTATION.html  ← This file
+│   ├── architecture.md
+│   ├── setup.md
+│   └── ...
+│
+├── naukri_jobs.xlsx        ← Sample scraped data
+├── remoteok_jobs.xlsx      ← Sample scraped data
+└── wellfound_jobs.xlsx     ← Sample scraped data
+</pre>
+</div>
+
+<!-- 6. BACKEND CODE EXPLANATION -->
+<h1 id="backend">6. Backend Code Explanation (app.py)</h1>
+
+<p>The entire backend is contained in a single file: <code>app.py</code> (~1400 lines). Here's a section-by-section breakdown:</p>
+
+<h2>6.1 Imports & Configuration (Lines 1-35)</h2>
+<pre><code>from flask import Flask, render_template, request, jsonify, session
+from models.job_model import Job
+from config import config as app_config
+
+app = Flask(__name__, static_folder='static', template_folder='templates')
+app.secret_key = os.urandom(24)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+</code></pre>
+<p><strong>What it does:</strong> Sets up Flask web server with session management and file upload limits.</p>
+
+<h2>6.2 Session Management (Lines 37-60)</h2>
+<p><strong>What it does:</strong> In-memory session store for user data (saved jobs, applied jobs, ATS scores, etc.). Uses UUID-based session IDs.</p>
+<p><strong>Data stored per user:</strong></p>
+<ul>
+  <li><code>saved_jobs</code> - Jobs bookmarked by user</li>
+  <li><code>applied_jobs</code> - Jobs marked as applied</li>
+  <li><code>ats_scores</code> - History of resume analyses</li>
+  <li><code>resume_versions</code> - Resume upload history</li>
+  <li><code>skill_progress</code> - Skill learning progress</li>
+</ul>
+
+<h2>6.3 Role Expansion System (Lines 65-170)</h2>
+<p><strong>What it does:</strong> Maps 10 core job roles to 20+ related titles each.</p>
+<p><strong>Data source:</strong> Hardcoded <code>ROLE_MAP</code> dictionary with 200+ job titles.</p>
+<p><strong>Example:</strong></p>
+<pre><code>"python developer" → ["Python Developer", "Backend Developer", 
+    "Django Developer", "AI Engineer", "Data Scientist", ...]
+</code></pre>
+<p>For unknown roles, <code>_expand_generic()</code> generates titles using prefixes (Senior, Junior, Lead) and suffixes (Engineer, Developer, Analyst).</p>
+
+<h2>6.4 Skills Database (Lines 175-230)</h2>
+<p><strong>What it does:</strong> Contains 150+ technical skills organized in 10 categories.</p>
+<table>
+  <tr><th>Category</th><th>Count</th><th>Examples</th></tr>
+  <tr><td>Programming Languages</td><td>20</td><td>Python, Java, JavaScript, Go, Rust</td></tr>
+  <tr><td>Frontend</td><td>20</td><td>React, Angular, Vue.js, Tailwind CSS</td></tr>
+  <tr><td>Backend</td><td>16</td><td>Django, Flask, FastAPI, Spring Boot</td></tr>
+  <tr><td>Databases</td><td>18</td><td>PostgreSQL, MongoDB, Redis, DynamoDB</td></tr>
+  <tr><td>Cloud</td><td>11</td><td>AWS, Azure, GCP, Vercel</td></tr>
+  <tr><td>DevOps</td><td>19</td><td>Docker, Kubernetes, Terraform</td></tr>
+  <tr><td>AI/ML</td><td>20</td><td>TensorFlow, PyTorch, LangChain</td></tr>
+  <tr><td>Mobile</td><td>11</td><td>React Native, Flutter, Swift</td></tr>
+  <tr><td>Tools</td><td>17</td><td>Git, Jira, Figma, Postman</td></tr>
+  <tr><td>Methodologies</td><td>15</td><td>Agile, Scrum, CI/CD, GraphQL</td></tr>
+</table>
+<p><strong>Skill extraction:</strong> <code>_extract_skills_from_text()</code> uses regex word-boundary matching to find skills in any text.</p>
+
+<h2>6.5 Job Generation Engine (Lines 235-400)</h2>
+<p><strong>What it does:</strong> Generates realistic job listings when user searches.</p>
+<p><strong>Data sources combined:</strong></p>
+<ul>
+  <li>100+ company names (Google, Microsoft, Amazon, startups, Indian companies)</li>
+  <li>25+ locations worldwide</li>
+  <li>16 salary ranges (USD, INR, EUR, GBP)</li>
+  <li>9 experience levels</li>
+  <li>5 job types</li>
+  <li>8 description templates</li>
+  <li>14 platform URL patterns</li>
+</ul>
+<p><strong>Match scoring algorithm:</strong></p>
+<ol>
+  <li>Extract skills from job description</li>
+  <li>Calculate overlap with user's resume skills</li>
+  <li>Base score = skill overlap percentage × 0.6</li>
+  <li>Bonus: +5/+12/+20 based on number of matching skills</li>
+  <li>Random variation: -5 to +10</li>
+  <li>Final: clamped to 15-98 range</li>
+</ol>
+
+<h2>6.6 Resume Analysis Engine (Lines 405-600)</h2>
+<p><strong>What it does:</strong> Analyzes resume text and produces a comprehensive report.</p>
+<p><strong>ATS Score Calculation (100 points):</strong></p>
+<table>
+  <tr><th>Criteria</th><th>Max Points</th><th>How It's Scored</th></tr>
+  <tr><td>Section Presence</td><td>30</td><td>Detects contact, summary, experience, education, skills, projects, certifications</td></tr>
+  <tr><td>Skills Match</td><td>25</td><td>Number of recognized skills × 3 (max 25)</td></tr>
+  <tr><td>Contact Info</td><td>10</td><td>Email, phone, LinkedIn, GitHub (2.5 each)</td></tr>
+  <tr><td>Keywords & Formatting</td><td>15</td><td>Bullet points (5) + Numbers (5) + Action verbs (5)</td></tr>
+  <tr><td>Length</td><td>10</td><td>300-1000 words = 10, 200-1500 = 7, else = 3</td></tr>
+  <tr><td>Education</td><td>10</td><td>Present or not</td></tr>
+  <tr><td>Extras</td><td>10</td><td>Projects (5) + Certifications (5)</td></tr>
+</table>
+<p><strong>Section detection uses regex:</strong></p>
+<pre><code>contact:    r'[\w.-]+@[\w.-]+\.\w+'
+summary:    r'(summary|objective|profile|about)'
+experience: r'(experience|work history|employment)'
+education:  r'(education|degree|university|college)'
+skills:     r'(skills|technologies|technical)'
+projects:   r'(projects|portfolio)'
+certs:      r'(certification|certificate|certified)'
+</code></pre>
+
+<h2>6.7 Interview Questions Database (Lines 600-800)</h2>
+<p><strong>What it does:</strong> Stores curated interview questions for 3 role categories + default.</p>
+<table>
+  <tr><th>Role</th><th>Technical</th><th>HR</th><th>Coding</th><th>Behavioral</th></tr>
+  <tr><td>Python Developer</td><td>8</td><td>4</td><td>4</td><td>3</td></tr>
+  <tr><td>Frontend Developer</td><td>8</td><td>2</td><td>3</td><td>1</td></tr>
+  <tr><td>Data Scientist</td><td>6</td><td>1</td><td>2</td><td>1</td></tr>
+  <tr><td>Default (any role)</td><td>3</td><td>8</td><td>3</td><td>2</td></tr>
+</table>
+<p>Each question includes a <strong>detailed tips</strong> section with the expected answer approach.</p>
+
+<h2>6.8 Career Insights Database (Lines 800-950)</h2>
+<p><strong>What it does:</strong> Provides market intelligence for 6 roles.</p>
+<p>Data includes: Average salary (USD + INR), demand level, growth rate, hiring trend, top companies, future outlook, key industries, entry/senior salary ranges.</p>
+
+<h2>6.9 Learning Resources Database (Lines 950-1050)</h2>
+<p><strong>What it does:</strong> Maps 35+ skills to learning resources.</p>
+<p>Each entry includes: Skill type, difficulty level, estimated learning time, 2-3 free resources (official docs, courses, YouTube channels).</p>
+
+<h2>6.10 Flask Routes/API Endpoints (Lines 1050-1400)</h2>
+<p>See <a href="#api-endpoints">Section 8: API Endpoints Reference</a>.</p>
+
+<!-- 7. FRONTEND CODE EXPLANATION -->
+<h1 id="frontend">7. Frontend Code Explanation</h1>
+
+<h2>7.1 HTML Structure (templates/index.html)</h2>
+<p><strong>Architecture:</strong> Single-page application (SPA) with 6 page sections, toggled via JavaScript.</p>
+<pre><code><div class="page active" id="page-home">...</div>
+<div class="page" id="page-search">...</div>
+<div class="page" id="page-resume">...</div>
+<div class="page" id="page-interview">...</div>
+<div class="page" id="page-career">...</div>
+<div class="page" id="page-dashboard">...</div>
+</code></pre>
+<p><strong>Key sections:</strong></p>
+<ul>
+  <li><strong>Hero:</strong> Gradient background, search bar, quick-search tags</li>
+  <li><strong>Features:</strong> 6 feature cards linking to different pages</li>
+  <li><strong>Platforms:</strong> 14 platform pills showing supported sites</li>
+  <li><strong>Search:</strong> Large search bar, remote toggle, sort dropdown, role expansion panel, job grid</li>
+  <li><strong>Resume:</strong> File upload area (drag & drop), text paste, target role input, results display</li>
+  <li><strong>Interview:</strong> Role input, expandable question cards with tips</li>
+  <li><strong>Career:</strong> Role input, insight cards grid</li>
+  <li><strong>Dashboard:</strong> Stats cards, saved jobs, applied jobs, ATS history, skill progress</li>
+</ul>
+
+<h2>7.2 CSS Styling (static/css/style.css)</h2>
+<p><strong>Design System:</strong></p>
+<ul>
+  <li><strong>Theme:</strong> Dark mode (slate background #0f172a)</li>
+  <li><strong>Colors:</strong> Indigo primary (#6366f1), Cyan secondary (#06b6d4)</li>
+  <li><strong>Typography:</strong> Inter font family, 9 weight variants</li>
+  <li><strong>Components:</strong> Cards, buttons, badges, progress bars, toggles, tags</li>
+  <li><strong>Responsive:</strong> Mobile-first with breakpoints at 768px</li>
+</ul>
+<p><strong>Key CSS features:</strong></p>
+<ul>
+  <li>CSS custom properties (variables) for theming</li>
+  <li>Conic gradient for ATS score circle</li>
+  <li>Backdrop blur for navbar</li>
+  <li>Smooth transitions and hover effects</li>
+  <li>Grid layouts with auto-fill</li>
+</ul>
+
+<h2>7.3 JavaScript Logic (static/js/app.js)</h2>
+<p><strong>Architecture:</strong> Vanilla JavaScript (no frameworks), ~400 lines.</p>
+<p><strong>Key functions:</strong></p>
+<table>
+  <tr><th>Function</th><th>Purpose</th></tr>
+  <tr><td><code>showPage()</code></td><td>Page navigation (SPA routing)</td></tr>
+  <tr><td><code>performSearch()</code></td><td>API call to /api/search, renders job cards</td></tr>
+  <tr><td><code>renderJobs()</code></td><td>Generates HTML for job cards grid</td></tr>
+  <tr><td><code>analyzeResume()</code></td><td>Upload file/paste text, calls /api/analyze-resume</td></tr>
+  <tr><td><code>renderResumeResults()</code></td><td>Displays ATS score, strengths, missing, suggestions</td></tr>
+  <tr><td><code>loadInterviewQuestions()</code></td><td>Fetches questions from /api/interview-prep</td></tr>
+  <tr><td><code>loadCareerInsights()</code></td><td>Fetches data from /api/career-insights</td></tr>
+  <tr><td><code>loadDashboard()</code></td><td>Fetches user data from /api/dashboard</td></tr>
+  <tr><td><code>saveJob()</code></td><td>Saves job to session via /api/dashboard/save-job</td></tr>
+  <tr><td><code>showToast()</code></td><td>Notification popup system</td></tr>
+</table>
+
+<!-- 8. API ENDPOINTS -->
+<h1 id="api-endpoints">8. API Endpoints Reference</h1>
+
+<table>
+  <tr><th>Endpoint</th><th>Method</th><th>Input</th><th>Output</th></tr>
+  <tr><td><code>/</code></td><td>GET</td><td>-</td><td>HTML page</td></tr>
+  <tr><td><code>/api/search</code></td><td>POST</td><td>{query, roles, remote_only, resume_skills}</td><td>{jobs[], total, roles[]}</td></tr>
+  <tr><td><code>/api/expand-roles</code></td><td>POST</td><td>{role}</td><td>{related_roles[]}</td></tr>
+  <tr><td><code>/api/analyze-resume</code></td><td>POST</td><td>FormData (file/text + target_role)</td><td>{ats_score, strengths[], missing[], suggestions[]}</td></tr>
+  <tr><td><code>/api/skill-gap</code></td><td>POST</td><td>{role, skills[]}</td><td>{possessed[], missing[], roadmap[]}</td></tr>
+  <tr><td><code>/api/interview-prep</code></td><td>POST</td><td>{role}</td><td>{questions: {technical[], hr[], coding[], behavioral[]}}</td></tr>
+  <tr><td><code>/api/career-insights</code></td><td>POST</td><td>{role}</td><td>{insights: {salary, demand, growth...}}</td></tr>
+  <tr><td><code>/api/dashboard</code></td><td>GET</td><td>-</td><td>{saved_jobs[], applied_jobs[], ats_scores[]}</td></tr>
+  <tr><td><code>/api/dashboard/save-job</code></td><td>POST</td><td>{job}</td><td>{status, saved}</td></tr>
+  <tr><td><code>/api/dashboard/apply-job</code></td><td>POST</td><td>{job}</td><td>{status, applied}</td></tr>
+  <tr><td><code>/api/resume-optimize</code></td><td>POST</td><td>{resume_text, target_role}</td><td>{optimized, suggestions[]}</td></tr>
+</table>
+
+<!-- 9. FEATURE DEEP DIVE -->
+<h1 id="features">9. Feature Deep Dive</h1>
+
+<h2>9.1 Job Matching Algorithm</h2>
+<ol>
+  <li>User searches "Python Developer"</li>
+  <li>System expands to 20 related roles</li>
+  <li>For each role, generates 3-7 job listings (40-140 total)</li>
+  <li>Each job gets random company, location, salary, skills</li>
+  <li>Match score calculated based on skill overlap with user's resume</li>
+  <li>Results sorted by match score (highest first)</li>
+</ol>
+
+<h2>9.2 ATS Score Breakdown</h2>
+<div class="success-box">
+  <strong>High Score (70+):</strong> Resume has good structure, many skills, contact info, action verbs, quantifiable achievements.
+</div>
+<div class="warn-box">
+  <strong>Medium Score (40-69):</strong> Resume has some sections but missing key elements like projects, certifications, or proper formatting.
+</div>
+<div class="danger-box">
+  <strong>Low Score (<40):</strong> Resume is missing critical sections, has few skills, no contact info, or is too short.
+</div>
+
+<h2>9.3 Skill Gap Analysis</h2>
+<p>Compares user's detected skills against the target role's required skills:</p>
+<ul>
+  <li><strong>Possessed:</strong> Skills found in both resume and role requirements</li>
+  <li><strong>Missing:</strong> Skills required by role but not in resume</li>
+  <li><strong>Critical Missing:</strong> Core skills (Python, JavaScript, SQL, etc.)</li>
+  <li><strong>Important Missing:</strong> Secondary skills (Kubernetes, GraphQL, etc.)</li>
+  <li><strong>Optional Missing:</strong> Nice-to-have skills</li>
+</ul>
+
+<!-- 10. SETUP GUIDE -->
+<h1 id="setup">10. Setup & Installation Guide</h1>
+
+<h2>Prerequisites</h2>
+<ul>
+  <li>Python 3.9 or higher</li>
+  <li>pip (Python package manager)</li>
+  <li>Web browser (Chrome recommended)</li>
+</ul>
+
+<h2>Installation Steps</h2>
+<pre><code># 1. Clone the repository
+git clone https://github.com/kakkadishva-bit/job-agent.git
+cd job-agent
+
+# 2. Install dependencies
+pip install flask
+
+# 3. Start the server
+python app.py
+
+# 4. Open in browser
+# http://localhost:5000
+</code></pre>
+
+<h2>Auto-Start Setup (Windows)</h2>
+<p>The <code>start_server.bat</code> file is already in the Windows Startup folder. The server starts automatically when you log in.</p>
+
+<!-- 11. DEPLOYMENT -->
+<h1 id="deployment">11. Deployment Options</h1>
+
+<table>
+  <tr><th>Option</th><th>Difficulty</th><th>Best For</th></tr>
+  <tr><td>Local (python app.py)</td><td>Easy</td><td>Personal use</td></tr>
+  <tr><td>PythonAnywhere</td><td>Medium</td><td>Free hosting</td></tr>
+  <tr><td>Heroku</td><td>Medium</td><td>Quick deployment</td></tr>
+  <tr><td>AWS EC2</td><td>Hard</td><td>Production use</td></tr>
+  <tr><td>Docker</td><td>Medium</td><td>Containerized deployment</td></tr>
+</table>
+
+<!-- 12. LIMITATIONS -->
+<h1 id="limitations">12. Known Limitations</h1>
+
+<ul>
+  <li><strong>Job data is simulated:</strong> The web app generates realistic but fake job listings. Real scraping requires the legacy scraper modules.</li>
+  <li><strong>Resume PDF parsing:</strong> PDF/DOCX text extraction is basic. For production, use libraries like PyPDF2 or python-docx.</li>
+  <li><strong>Session persistence:</strong> User data is stored in memory and resets when server restarts. Use Redis/SQLite for production.</li>
+  <li><strong>No authentication:</strong> All users share the same session system. Add Flask-Login for multi-user support.</li>
+  <li><strong>No real-time data:</strong> Job listings are generated, not fetched from live APIs.</li>
+</ul>
+
+<h2>Potential Enhancements</h2>
+<ul>
+  <li>Integrate real job APIs (LinkedIn API, Indeed API, Adzuna API)</li>
+  <li>Add OpenAI API for AI-powered resume optimization</li>
+  <li>Implement user authentication with Flask-Login</li>
+  <li>Add SQLite/PostgreSQL for data persistence</li>
+  <li>Deploy to cloud (Heroku, AWS, Railway)</li>
+  <li>Add email notifications for new job matches</li>
+  <li>Implement real-time WebSocket updates</li>
+</ul>
+
+<hr style="margin-top:40px;">
+<p style="text-align:center; color:#64748b; font-size:0.9em;">
+  AI Job Agent Documentation v1.0 | Generated June 2026<br>
+  To save as PDF: Open this file in Chrome → Press Ctrl+P → Select "Save as PDF"
+</p>
+
+</body>
+</html>

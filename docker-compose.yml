@@ -1,0 +1,192 @@
+# JobAgent Enterprise - Docker Compose Configuration
+# For production deployment
+
+version: '3.8'
+
+services:
+  # ─── PostgreSQL Database ────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: jobagent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jobagent
+      POSTGRES_USER: jobagent
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobagent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobagent-network
+
+  # ─── Redis Cache ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: jobagent-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password_here}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobagent-network
+
+  # ─── N8N Automation ─────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: jobagent-n8n
+    restart: unless-stopped
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=jobagent
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-secure_password_here}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-n8n_admin_password}
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_METRICS=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+    ports:
+      - "5678:5678"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobagent-network
+
+  # ─── JobAgent Application ───────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobagent-app
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://jobagent:${DB_PASSWORD:-secure_password_here}@postgres:5432/jobagent
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-jwt-secret-key-here}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ADZUNA_API_KEY=${ADZUNA_API_KEY}
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook
+      - FLASK_ENV=production
+      - FLASK_DEBUG=False
+      - PORT=5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      n8n:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - jobagent-network
+
+  # ─── Nginx Reverse Proxy ────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: jobagent-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./static:/var/www/static:ro
+    depends_on:
+      - app
+    networks:
+      - jobagent-network
+
+  # ─── Prometheus Monitoring ──────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jobagent-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - jobagent-network
+
+  # ─── Grafana Dashboard ──────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jobagent-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - jobagent-network
+
+# ─── Volumes ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ─── Networks ─────────────────────────────────────────────────────
+networks:
+  jobagent-network:
+    driver: bridge

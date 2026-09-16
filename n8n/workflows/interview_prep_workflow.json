@@ -1,0 +1,131 @@
+{
+  "name": "JobAgent - Interview Preparation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "interview-prep",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedMethods": "POST"
+        }
+      },
+      "id": "webhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "You are an expert interview coach. Generate realistic, role-specific interview questions with detailed answers and evaluation criteria."
+            },
+            {
+              "role": "user",
+              "content": "Generate interview questions for:\n\nRole: {{ $json.body.role }}\nCompany: {{ $json.body.company || 'Generic' }}\nExperience Level: {{ $json.body.experience_level || 'mid' }}\nIndustry: {{ $json.body.industry || 'Technology' }}\n\nGenerate questions for these categories:\n1. Technical Questions (5 questions)\n2. HR/Behavioral Questions (3 questions)\n3. Coding Questions (2 questions if applicable)\n4. System Design (2 questions if senior level)\n\nFor each question provide:\n- question\n- what_interviewer_looks_for\n- key_points_to_cover\n- sample_strong_answer (2-3 sentences)\n- common_mistakes\n- difficulty (Easy/Medium/Hard)\n- estimated_time (minutes)\n\nFormat as JSON. Make questions realistic and specific to the role."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "aiAgent1",
+      "name": "AI Interview Questions",
+      "type": "n8n-nodes-base.googleAI",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Structure interview questions\nconst aiResponse = $json.message.content;\nlet questionsData;\n\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  questionsData = jsonMatch ? JSON.parse(jsonMatch[0]) : { categories: {} };\n} catch (e) {\n  questionsData = { categories: {}, error: 'Failed to parse' };\n}\n\n// Add metadata\nquestionsData.role = $json.body.role;\nquestionsData.company = $json.body.company;\nquestionsData.generated_at = new Date().toISOString();\nquestionsData.source = 'ai_powered';\n\nreturn {\n  json: questionsData\n};"
+      },
+      "id": "code1",
+      "name": "Structure Questions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "interview_sessions",
+        "columns": "user_id, role, company, questions_data, created_at",
+        "values": "={{ $json.body.user_id || null }}, {{ $json.body.role }}, {{ $json.body.company }}, '{{ JSON.stringify($json) }}', NOW()"
+      },
+      "id": "postgres1",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Interview Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Interview Questions": {
+      "main": [
+        [
+          {
+            "node": "Structure Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Questions": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

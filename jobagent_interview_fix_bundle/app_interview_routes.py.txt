@@ -1,0 +1,192 @@
+# REPLACE the existing /api/interview-prep/start, /answer and /end routes with this block.
+# Keep the old /api/interview-prep compatibility endpoint below them.
+
+@app.route('/api/interview-prep/start', methods=['POST'])
+def api_interview_prep_start():
+    data = request.get_json(silent=True) or {}
+    role = str(data.get('role', '')).strip()
+    if not role:
+        return jsonify({'error': 'Please provide a target role'}), 400
+
+    session_id = str(uuid.uuid4())
+    resume_context = data.get('resume_context') or {}
+    job_context = data.get('job_context') or {}
+    required = [str(x).strip() for x in (data.get('required_skills') or []) if str(x).strip()]
+    preferred = [str(x).strip() for x in (data.get('preferred_skills') or []) if str(x).strip()]
+    if isinstance(job_context, dict):
+        required += [str(x).strip() for x in (job_context.get('required_skills') or []) if str(x).strip()]
+        preferred += [str(x).strip() for x in (job_context.get('preferred_skills') or []) if str(x).strip()]
+    required = list(dict.fromkeys(required))
+    preferred = [x for x in dict.fromkeys(preferred) if x.lower() not in {r.lower() for r in required}]
+
+    cfg = {
+        'user_id': current_user.id if current_user.is_authenticated else '',
+        'target_role': role,
+        'company': str(data.get('company', '')).strip(),
+        'experience_level': data.get('experience_level', 'junior'),
+        'interview_mode': data.get('interview_mode', 'standard'),
+        'job_id': str(data.get('job_id', '') or ''),
+        'required_skills': required,
+        'preferred_skills': preferred,
+    }
+    state = InterviewState(session_id, cfg)
+    state.resume_used = bool(resume_context)
+    state.jd_used = bool(job_context)
+    state.required_skills = required
+    state.preferred_skills = preferred
+
+    # Use the configured local model. No cloud API is required.
+    llm = LocalLLMProvider({
+        'runtime': os.getenv('JOBAGENT_LLM_RUNTIME', os.getenv('LLM_RUNTIME', 'ollama')),
+        'model': os.getenv('JOBAGENT_LLM_MODEL', os.getenv('LLM_MODEL', 'qwen2.5-coder:7b')),
+        'base_url': os.getenv('JOBAGENT_LLM_BASE_URL', '' ) or None,
+        'timeout_seconds': int(os.getenv('JOBAGENT_LLM_TIMEOUT', '60')),
+        'temperature': float(os.getenv('JOBAGENT_LLM_TEMPERATURE', '0.35')),
+        'max_tokens': 600,
+    })
+    # Remove None so LocalLLMProvider can calculate its normal endpoint.
+    if llm.config.get('base_url') is None:
+        llm.config.pop('base_url', None)
+        llm.base_url = llm._default_base_url()
+
+    rag = get_rag()
+    context_builder = InterviewContextBuilder(rag_pipeline=rag)
+    question_gen = QuestionGenerator(llm_provider=llm)
+    evaluator = AnswerEvaluator(llm_provider=llm)
+
+    initial_context = context_builder.build_context(
+        resume_context, job_context, [], state.to_dict(),
+        current_query=f'{role} interview {" ".join(required)}'
+    )
+    state.rag_used = initial_context['rag_used']
+    first = question_gen.first_question(state, resume_context, job_context, initial_context['context'])
+    state.record_question(first['question'], first.get('type', 'introduction'), first.get('skill', ''), first.get('source', 'llm'))
+
+    interview_sessions[session_id] = {
+        'state': state,
+        'resume_context': resume_context,
+        'job_context': job_context,
+        'question_gen': question_gen,
+        'context_builder': context_builder,
+        'answer_evaluator': evaluator,
+        'conversation': [{'role': 'interviewer', 'content': first['question']}],
+        'created_at': datetime.utcnow().isoformat(),
+    }
+    return jsonify({
+        'session_id': session_id,
+        'role': role,
+        'question': first,
+        'turn': state.turn_count,
+        'status': 'active',
+        'llm': llm.model_info(),
+        'rag_used': state.rag_used,
+    })
+
+
+@app.route('/api/interview-prep/answer', methods=['POST'])
+def api_interview_prep_answer():
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get('session_id', '')).strip()
+    answer = str(data.get('answer', '')).strip()
+    if not session_id or session_id not in interview_sessions:
+        return jsonify({'error': 'Invalid or expired interview session'}), 400
+    if not answer:
+        return jsonify({'error': 'Please enter an answer'}), 400
+
+    sess = interview_sessions[session_id]
+    state = sess['state']
+    if state.status != 'active':
+        return jsonify({'error': 'Interview is already completed'}), 400
+    question = (state.current_question or {}).get('question', '')
+    if not question:
+        return jsonify({'error': 'No active interview question'}), 409
+
+    conversation = sess['conversation']
+    resume_context = sess['resume_context']
+    job_context = sess['job_context']
+    context_builder = sess['context_builder']
+
+    # Retrieve knowledge using the actual question + answer, not the answer alone.
+    ctx = context_builder.build_context(
+        resume_context, job_context, conversation, state.to_dict(),
+        current_query=f'{question}\n{answer}'
+    )
+    evaluation = sess['answer_evaluator'].evaluate(question, answer, ctx['context'])
+    state.rag_used = state.rag_used or ctx['rag_used']
+    state.record_answer(answer, evaluation)
+    conversation.append({'role': 'candidate', 'content': answer})
+
+    if not state.should_continue():
+        return jsonify({
+            'session_id': session_id, 'evaluation': evaluation, 'next_question': None,
+            'turn': state.turn_count, 'status': 'completed', 'should_continue': False,
+            'overall_score': state.overall_score,
+        })
+
+    next_q = sess['question_gen'].next_question(
+        state, resume_context, job_context, conversation, evaluation, ctx['context']
+    )
+
+    # Never show the same question twice.
+    if sess['question_gen'].is_duplicate(next_q.get('question', ''), state.questions_asked):
+        next_q = sess['question_gen']._fallback_general(state)
+    if sess['question_gen'].is_duplicate(next_q.get('question', ''), state.questions_asked):
+        next_q = {'question': 'Describe one concrete technical decision you made in a project and explain why you made it.',
+                  'type': 'problem_solving', 'skill': '', 'source': 'safe_fallback'}
+
+    state.record_question(next_q['question'], next_q.get('type', 'technical'), next_q.get('skill', ''), next_q.get('source', 'llm'))
+    conversation.append({'role': 'interviewer', 'content': next_q['question']})
+    return jsonify({
+        'session_id': session_id, 'evaluation': evaluation, 'next_question': next_q,
+        'turn': state.turn_count, 'status': 'active', 'should_continue': True,
+        'overall_score': state.overall_score, 'difficulty': state.difficulty,
+        'rag_used': ctx['rag_used'],
+    })
+
+
+@app.route('/api/interview-prep/end', methods=['POST'])
+def api_interview_prep_end():
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get('session_id', '')).strip()
+    if not session_id or session_id not in interview_sessions:
+        return jsonify({'error': 'Invalid or expired interview session'}), 400
+
+    sess = interview_sessions[session_id]
+    state = sess['state']
+    state.finalize()
+    summary = state.to_dict()
+    summary.update({
+        'strong_areas': state.strong_areas,
+        'weak_areas': state.weak_areas,
+        'questions_detail': state.questions_asked,
+        'evaluations': state.evaluations,
+        'company': sess['job_context'].get('company', '') if isinstance(sess['job_context'], dict) else '',
+    })
+
+    # Persist completed interviews for authenticated users using the existing model.
+    if current_user.is_authenticated:
+        try:
+            history = InterviewHistory(
+                user_id=current_user.id,
+                company=summary.get('company') or 'Not specified',
+                role=state.target_role,
+                interview_type='adaptive_ai',
+                duration_minutes=max(1, round((datetime.utcnow() - datetime.fromisoformat(state.started_at)).total_seconds() / 60)),
+                questions_asked=json.dumps(state.questions_asked),
+                feedback=json.dumps({
+                    'overall_score': state.overall_score,
+                    'strong_areas': state.strong_areas,
+                    'weak_areas': state.weak_areas,
+                    'skills_covered': state.skills_covered,
+                }),
+                rating=max(1, min(5, round(state.overall_score / 20))),
+                status='completed',
+            )
+            db.session.add(history)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    # Keep the session in memory briefly until the client has rendered the report.
+    state.status = 'completed'
+    return jsonify({'status': 'completed', 'summary': summary})

@@ -1,0 +1,19 @@
+<!-- Replace ONLY the existing interview setup block with this. -->
+<div class="interview-setup" id="interviewSetupPanel">
+  <div class="card"><div class="card-body">
+    <h3><i class="fas fa-sliders-h"></i> Start a Real Interview</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Target Role *</label><input type="text" id="interviewRole" placeholder="e.g. ML Engineer"></div>
+      <div class="form-group"><label>Company (optional)</label><input type="text" id="interviewCompany" placeholder="Company name"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Experience Level</label><select id="interviewLevel"><option value="junior">Junior (0-2 years)</option><option value="mid">Mid (2-5 years)</option><option value="senior">Senior (5-8 years)</option><option value="lead">Lead/Staff (8+ years)</option></select></div>
+      <div class="form-group"><label>Interview Mode</label><select id="interviewMode"><option value="quick">Quick (5-10 questions)</option><option value="standard" selected>Standard (10-20 questions)</option><option value="deep">Deep (20-35 questions)</option></select></div>
+    </div>
+    <div class="form-group"><label>Job Description (recommended)</label><textarea id="interviewJD" rows="5" placeholder="Paste the actual job description. The interviewer will use only its stated requirements."></textarea></div>
+    <div class="form-group"><label>Required Skills (optional)</label><input type="text" id="interviewRequiredSkills" placeholder="Python, Machine Learning, RAG, FastAPI"></div>
+    <div class="form-group"><label>Resume (optional if already analyzed)</label><textarea id="interviewResumeContext" rows="4" placeholder="Paste resume text, or analyze your resume first and JobAgent will reuse the last analysis."></textarea></div>
+    <button class="btn btn-primary btn-lg" id="startInterviewBtn" onclick="startAdaptiveInterview()"><i class="fas fa-play-circle"></i> Start Interview</button>
+    <p class="input-hint">Questions adapt to your resume, JD, previous answers and interview knowledge.</p>
+  </div></div>
+</div>
