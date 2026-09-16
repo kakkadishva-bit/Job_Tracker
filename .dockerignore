@@ -1,0 +1,75 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+.venv.bak/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Local caches
+.cache/
+.cached/
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Local databases / SQLite
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+instance/logs/
+
+# Scraped / generated data
+*.csv
+*.xlsx
+
+# Local model files
+models/*.pt
+models/*.bin
+models/*.safetensors
+models/*.gguf
+models/model_*.pth
+*.ggv3
+
+# Uploaded user files
+storage/resume_uploads/
+storage/uploads/
+
+# Test data and temporary files
+tests/_tmp_resumes/
+tests/data/
+_*.txt
+debug_*.html
+
+# Node.js dependencies
+node_modules/
+.farsan-showcase/node_modules/
+
+# Git
+.git/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Development scripts (not needed in production image)
+jobagent_interview_fix_bundle/
