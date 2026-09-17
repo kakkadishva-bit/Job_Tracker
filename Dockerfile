@@ -7,16 +7,19 @@ FROM python:3.11-slim-bullseye AS builder
 # Set working directory
 WORKDIR /app
 
-# No system packages required: every dependency in requirements.txt ships a
-# prebuilt CPython 3.11 manylinux wheel, so nothing is compiled from source.
-# --only-binary=:all: makes the build fail fast with a clear error if any
-# dependency ever lacks a wheel, instead of silently requiring a compiler.
+# Every dependency ships a prebuilt CPython 3.11 manylinux wheel, and
+# --only-binary=:all: makes the build fail fast if any ever lacks a wheel,
+# so no compiler is needed. The virtualenv lives under /opt — NOT /root —
+# because the production stage runs as the non-root appuser, which cannot
+# access /root; executables (gunicorn, python) must be world-executable.
+
+RUN python -m venv /opt/venv
 
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies (wheels only — no compiler available or needed)
-RUN pip install --no-cache-dir --only-binary=:all: --user -r requirements.txt
+# Install Python dependencies into /opt/venv (no --user, wheels only)
+RUN /opt/venv/bin/pip install --no-cache-dir --only-binary=:all: -r requirements.txt
 
 
 # ─── Stage 2: Production ──────────────────────────────────────────
@@ -29,8 +32,9 @@ WORKDIR /app
 # - no PostgreSQL client headers (psycopg2 is not in requirements.txt)
 # - no curl (health check uses Python urllib instead)
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Copy the virtualenv from the builder (root-owned, world-readable and
+# world-executable, so the appuser runtime can run its binaries)
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
 COPY . .
@@ -45,8 +49,8 @@ RUN useradd -m -u 1000 appuser && \
 # Switch to non-root user
 USER appuser
 
-# Add local packages to PATH
-ENV PATH=/root/.local/bin:$PATH
+# Use the virtualenv executables (gunicorn, python) in production
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Port (hosting platforms like Render set $PORT dynamically)
 ENV PORT=5000
