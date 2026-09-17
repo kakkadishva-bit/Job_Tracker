@@ -7,11 +7,10 @@ FROM python:3.11-slim-bullseye AS builder
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (gcc/g++ needed for compiling native Python packages)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -27,11 +26,9 @@ FROM python:3.11-slim-bullseye
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# No runtime system packages needed:
+# - libpq-dev removed (psycopg2 not in requirements.txt)
+# - curl removed (health check uses Python urllib instead)
 
 # Copy Python dependencies from builder
 COPY --from=builder /root/.local /root/.local
@@ -58,9 +55,9 @@ ENV PORT=5000
 # Expose port
 EXPOSE 5000
 
-# Health check
+# Health check (Python-based — no curl dependency)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health')" || exit 1
 
 # Run with Gunicorn for production
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 4 --threads 2 --timeout 120 --access-logfile - --error-logfile - app:app"]
