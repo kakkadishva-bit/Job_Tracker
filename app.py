@@ -95,6 +95,7 @@ from services.location.resolver import resolve_location, annotate_salary_for_loc
 # Adaptive Interview System 
 
 from services.interview import InterviewState, QuestionGenerator, InterviewContextBuilder, AnswerEvaluator
+from services.interview.session_store import InterviewSessionStore
 
 from services.llm import LocalLLMProvider
 
@@ -5854,614 +5855,294 @@ def api_mark_all_notifications_read():
 
 
 @app.route('/api/interview-prep/start', methods=['POST'])
-
 def api_interview_prep_start():
-
-    """Start a new adaptive interview session."""
-
+    """Start a DB-persisted adaptive interview session."""
     data = request.get_json() or {}
-
-    role = data.get('role', '')
-
+    role = str(data.get('role', '') or '').strip()
     if not role:
-
         return jsonify({"error": "Please provide a role"}), 400
 
-
-
     session_id = str(uuid.uuid4())
-
     config = {
-
         "target_role": role,
-
         "company": data.get("company", ""),
-
         "interview_mode": data.get("interview_mode", "standard"),
-
         "experience_level": data.get("experience_level", "mid"),
-
         "resume_version_id": data.get("resume_version_id", ""),
-
         "job_id": data.get("job_id", ""),
-
     }
-
-    resume_context = data.get("resume_context", {})
-
-    job_context = data.get("job_context", {})
-
-    required_skills = data.get("required_skills", [])
-
-    preferred_skills = data.get("preferred_skills", [])
-
-
+    resume_context = data.get("resume_context", {}) or {}
+    job_context = data.get("job_context", {}) or {}
+    required_skills = data.get("required_skills", []) or []
+    preferred_skills = data.get("preferred_skills", []) or []
 
     state = InterviewState(session_id, config)
-
+    state.user_id = str(current_user.id)
     state.resume_used = bool(resume_context)
-
     state.jd_used = bool(job_context)
 
-
-
-    question_gen = QuestionGenerator(llm_provider=get_llm_provider())
-
-    context_builder = InterviewContextBuilder(rag_pipeline=None)
-
-
-
-    # JD-derived skills fill gaps when the caller did not pass any.
-
+    provider = get_llm_provider()
+    question_gen = QuestionGenerator(llm_provider=provider)
     jd_skills = question_gen._skills_from_job(job_context)
-
-    required_skills = list(required_skills or []) or jd_skills["required"]
-
-    preferred_skills = list(preferred_skills or []) or jd_skills["preferred"]
-
+    required_skills = list(required_skills) or jd_skills["required"]
+    preferred_skills = list(preferred_skills) or jd_skills["preferred"]
     state.required_skills = required_skills
-
     state.preferred_skills = preferred_skills
-
     state.skills_remaining = list(required_skills)
-
     state.required_skills_not_tested = list(required_skills)
-
     state.preferred_skills_not_tested = list(preferred_skills)
 
-
-
-    # RAG reference facts for turn 1 (role + resume snippet).
-
     rag_results = []
-
     rag_pipeline = get_rag()
-
     if rag_pipeline:
-
         try:
-
-            rag_query = ((state.target_role or role or "") + " " +
-
-                         str((resume_context or {}).get("text", ""))[:400]).strip()
-
+            rag_query = (role + " " + str((resume_context or {}).get("text", ""))[:400]).strip()
             if rag_query:
-
                 rag_results = rag_pipeline.retrieve(rag_query, top_k=2) or []
-
-        except Exception:
-
-            rag_results = []
-
-        if rag_results:
-
-            state.rag_used = True
-
-
+            if rag_results:
+                state.rag_used = True
+        except Exception as exc:
+            logger.warning("Interview RAG start failed: %s", exc)
 
     resume_norm = question_gen._normalize_resume_skills(resume_context)
-
     context_str = question_gen._build_context_str(
-
-        state, resume_norm, required_skills, job_context, [], rag_results)
-
-
-
+        state, resume_norm, required_skills, job_context, [], rag_results
+    )
     first_question = question_gen.get_first_question(
-
-        state, resume_norm, required_skills, job_context, context_str)
-
+        state, resume_norm, required_skills, job_context, context_str
+    )
+    question_text = first_question.get("question", "")
     state.record_question(
-
-        first_question.get("question", ""),
-
+        question_text,
         first_question.get("type", "behavioral"),
-
         first_question.get("skill", ""),
-
         source=str(first_question.get("source", "")),
-
         topic=str(first_question.get("topic", "")),
-
         difficulty=str(first_question.get("difficulty", "")),
+        follow_up=False,
+    )
 
-        follow_up=False)
-
-
-
-    conversation = []
-
-    conversation.append({"role": "interviewer",
-
-                         "content": first_question.get("question", "")})
-
-
-
-    interview_sessions[session_id] = {
-
-        "user_id": current_user.id,  # ownership from session, never request
-        "state": state,
-
+    conversation = [{"role": "interviewer", "content": question_text}]
+    extras = {
         "resume_context": resume_context,
-
         "job_context": job_context,
-
         "required_skills": required_skills,
-
         "preferred_skills": preferred_skills,
-
-        "question_gen": question_gen,
-
-        "context_builder": context_builder,
-
-        "answer_evaluator": AnswerEvaluator(llm_provider=get_llm_provider()),
-
         "conversation": conversation,
-
-        "created_at": datetime.utcnow().isoformat(),
-
+        "resume_version_id": data.get("resume_version_id", ""),
+        "job_description": (job_context or {}).get("description"),
     }
 
+    # The database is the authoritative source. Never fall back to a worker-local
+    # session because Render/Gunicorn can route the next request to another worker.
+    row_id = InterviewSessionStore.create(state, extras)
+    if row_id is None:
+        return jsonify({
+            "success": False,
+            "error": "Could not create interview session. Please try again."
+        }), 503
+    InterviewSessionStore.add_message(
+        row_id, "interviewer", question_text,
+        question_type=str(first_question.get("type", "behavioral")),
+        question_id=str(first_question.get("question_id", "")),
+    )
 
-
-    provider = get_llm_provider()
-
-    llm_info = (provider.model_info() if provider
-
-                else {"runtime": "none", "model": "", "base_url": ""})
-
+    llm_info = provider.model_info() if provider else {
+        "runtime": "none", "model": "", "base_url": ""
+    }
     llm_info["available"] = bool(provider)
-
-    llm_info["last_error"] = (getattr(provider, "last_error", "") if provider
-
-                              else "GROQ_API_KEY missing - deterministic mode")
-
-
-
-    _interview_diag(
-
-        "provider=%s model=%s turn=1 question_llm=%s evaluation_llm=%s q_fallback=%r "
-
-        "provider_error=%r"
-
-        % (llm_info.get("runtime"), llm_info.get("model"),
-
-           bool(first_question.get("llm_generated")), "n/a (no answer yet)",
-
-           first_question.get("fallback_reason"),
-
-           (llm_info.get("last_error") or "") or "none"))
+    llm_info["last_error"] = (
+        getattr(provider, "last_error", "") if provider
+        else "GROQ_API_KEY missing - deterministic mode"
+    )
 
     return jsonify({
-
         "user_id": current_user.id,
         "session_id": session_id,
-
         "role": role,
-
         "question": first_question,
-
         "turn": state.turn_count,
-
         "status": "active",
-
         "llm_generated_question": bool(first_question.get("llm_generated")),
-
         "question_fallback_reason": first_question.get("fallback_reason"),
-
+        "llm_available": bool(provider),
         "llm": llm_info,
-
         "llm_runtime": llm_info.get("runtime"),
-
         "llm_model": llm_info.get("model"),
-
         "rag_used": state.rag_used,
-
         "rag_chunks": len(rag_results),
-
     })
-
-
-
 
 
 @app.route('/api/interview-prep/answer', methods=['POST'])
-
 def api_interview_prep_answer():
-
-    """Submit an answer: Groq evaluates it against the question + full context,
-
-    then Groq generates the adaptive next question from resume + JD + RAG +
-
-    conversation history + this answer + the previous evaluation. Weak answers
-
-    trigger a probing follow-up on the same skill before the topic changes."""
+    """Evaluate an answer and generate the next adaptive question from DB state."""
+    import hashlib
 
     data = request.get_json() or {}
-
-    session_id = data.get("session_id", "")
-
-    answer = data.get("answer", "")
-
-
-
-    if not session_id or session_id not in interview_sessions:
-
+    session_id = str(data.get("session_id", "") or "").strip()
+    answer = str(data.get("answer", "") or "")
+    if not session_id:
         return jsonify({"error": "Invalid or expired session"}), 400
-
-
-
-    if not (answer or "").strip():
-
+    if not answer.strip():
         return jsonify({"error": "Please provide a non-empty answer"}), 400
 
-    sess = interview_sessions[session_id]
+    loaded = InterviewSessionStore.load(session_id, current_user.id)
+    if loaded is None:
+        owner = InterviewSessionStore.lookup_owner(session_id)
+        if owner is not None and owner != current_user.id:
+            return jsonify({"success": False, "error": "Invalid or expired session"}), 404
+        return jsonify({"error": "Invalid or expired session"}), 400
 
-    if sess.get("user_id") != current_user.id:
+    state, extras, row_id = loaded
+    fingerprint = hashlib.sha256(
+        ((state.current_question or {}).get("question", "") + "\n" + answer.strip()).encode("utf-8")
+    ).hexdigest()
 
-        return jsonify({'success': False, 'error': 'Invalid or expired session'}), 404
+    # Persisted idempotency: retries across Gunicorn workers return the same response.
+    if state.last_answer_fingerprint == fingerprint and isinstance(state.last_response, dict):
+        return jsonify(state.last_response)
 
-    state = sess["state"]
-
-    question_gen = sess["question_gen"]
-
-    evaluator = sess["answer_evaluator"]
-
-    context_builder = sess["context_builder"]
-
-    resume_context = sess["resume_context"]
-
-    job_context = sess["job_context"]
-
-    required_skills = sess["required_skills"]
-
-    preferred_skills = sess["preferred_skills"]
-
-    conversation = sess["conversation"]
-
-
+    resume_context = extras.get("resume_context", {}) or {}
+    job_context = extras.get("job_context", {}) or {}
+    required_skills = extras.get("required_skills", []) or []
+    preferred_skills = extras.get("preferred_skills", []) or []
+    conversation = list(extras.get("conversation", []) or [])
 
     last_question = ""
-
     for msg in reversed(conversation):
-
-        if msg.get("role") == "interviewer" and (msg.get("content") or "").strip():
-
+        if msg.get("role") == "interviewer" and str(msg.get("content", "")).strip():
             last_question = msg["content"]
-
             break
+    if not last_question and state.current_question:
+        last_question = state.current_question.get("question", "")
 
-
-
-    # RAG reference facts grounded in the question + this answer.
+    provider = get_llm_provider()
+    question_gen = QuestionGenerator(llm_provider=provider)
+    evaluator = AnswerEvaluator(llm_provider=provider)
+    context_builder = InterviewContextBuilder(rag_pipeline=None)
 
     rag_results = []
-
     rag_pipeline = get_rag()
-
-    rag_query = ((last_question or "") + " " + str(answer))[:800].strip()
-
+    rag_query = (last_question + " " + answer)[:800].strip()
     if rag_pipeline and rag_query:
-
         try:
-
             rag_results = rag_pipeline.retrieve(rag_query, top_k=3) or []
-
-        except Exception:
-
-            rag_results = []
-
-        if rag_results:
-
-            state.rag_used = True
-
-
+            if rag_results:
+                state.rag_used = True
+        except Exception as exc:
+            logger.warning("Interview RAG answer failed: %s", exc)
 
     prev_eval = state.previous_evaluations[-1] if state.previous_evaluations else None
-
     built = context_builder.build_context(
-
         resume_context, job_context, conversation, state.to_dict(),
-
-        rag_query, ([prev_eval] if prev_eval else []), rag_results)
-
+        rag_query, ([prev_eval] if prev_eval else []), rag_results
+    )
     context_str = built.get("context", "")
-
     if built.get("rag_chunks"):
-
         state.rag_used = True
 
-
-
-    # 1) GROQ evaluates this specific answer against this specific question.
-
-    evaluation = evaluator.evaluate(last_question, str(answer), context_str, prev_eval)
-
+    evaluation = evaluator.evaluate(last_question, answer, context_str, prev_eval)
     state.record_answer(answer, evaluation)
 
-
-
-    conversation.append({"role": "interviewer", "content": last_question})
-
-    conversation.append({"role": "candidate", "content": str(answer)})
-
-
-
-    # 2) Adaptive next question. Weak answers get a follow-up probe on the same
-
-    # ========================================================================
-# Role Guide Search API
-# ========================================================================
-
-
+    conversation.append({"role": "candidate", "content": answer})
     follow_up = state.should_follow_up(evaluation)
-
     question_context = context_str
-
     if follow_up:
-
-        question_context += ("\n\nFOLLOW-UP MODE: the previous answer scored %s/100 - "
-
-                             "do NOT switch topics. Ask exactly ONE probing follow-up "
-
-                             "about the same skill (%s), targeting the missing or "
-
-                             "incorrect parts." % (evaluation.get("overall_score"),
-
-                                                   state.current_skill or "the current topic"))
-
-
+        question_context += (
+            "\n\nFOLLOW-UP MODE: the previous answer scored %s/100 - "
+            "do NOT switch topics. Ask exactly ONE probing follow-up "
+            "about the same skill (%s), targeting the missing or incorrect parts."
+            % (evaluation.get("overall_score"), state.current_skill or "the current topic")
+        )
 
     next_question = question_gen.get_next_question(
-
         state, resume_context, required_skills, preferred_skills,
-
-        conversation, rag_results,
-
-        context_str=question_context, evaluation=evaluation)
-
+        conversation, rag_results, context_str=question_context,
+        evaluation=evaluation
+    )
     if follow_up and next_question:
-
         state.mark_follow_up()
 
     if next_question:
-
+        next_text = next_question.get("question", "")
         state.record_question(
-
-            next_question.get("question", ""),
-
+            next_text,
             next_question.get("type", "technical"),
-
             next_question.get("skill", ""),
-
             source=str(next_question.get("source", "")),
-
             topic=str(next_question.get("topic", "")),
-
             difficulty=str(next_question.get("difficulty", "")),
-
-            follow_up=bool(follow_up or next_question.get("follow_up")))
-
-
+            follow_up=follow_up,
+        )
+        conversation.append({"role": "interviewer", "content": next_text})
+        InterviewSessionStore.add_message(
+            row_id, "candidate", answer,
+            question_type=str((state.previous_evaluations[-1] if state.previous_evaluations else {}).get("question_type", "")),
+            evaluation=evaluation,
+        )
+        InterviewSessionStore.add_message(
+            row_id, "interviewer", next_text,
+            question_type=str(next_question.get("type", "technical")),
+            question_id=str(next_question.get("question_id", "")),
+        )
+    else:
+        InterviewSessionStore.add_message(row_id, "candidate", answer, evaluation=evaluation)
 
     should_continue = state.should_continue()
-
-    provider = get_llm_provider()
-
-    llm_info = (provider.model_info() if provider
-
-                else {"runtime": "none", "model": "", "base_url": ""})
-
-    llm_info["available"] = bool(provider)
-
-
-
-    _provider_error = (getattr(provider, "last_error", "") or "")
-
-    _interview_diag(
-
-        "provider=%s model=%s turn=%s question_llm=%s evaluation_llm=%s follow_up=%s "
-
-        "rag_hits=%s q_fallback=%r eval_fallback=%r provider_error=%r"
-
-        % (llm_info.get("runtime"), llm_info.get("model"), state.turn_count,
-
-           bool((next_question or {}).get("llm_generated")),
-
-           (evaluation or {}).get("evaluated_by") == "llm",
-
-           bool(follow_up), len(rag_results),
-
-           (next_question or {}).get("fallback_reason"),
-
-           (evaluation or {}).get("fallback_reason"),
-
-           _provider_error or "none"))
-
-    if not ((next_question or {}).get("llm_generated")
-
-            and (evaluation or {}).get("evaluated_by") == "llm"):
-
-        _interview_diag(
-
-            "GROQ NOT USED THIS TURN -> eval_fallback=%r question_fallback=%r "
-
-            "provider_error=%r (fallback served deliberately, reason logged)"
-
-            % ((evaluation or {}).get("fallback_reason"),
-
-               (next_question or {}).get("fallback_reason"),
-
-               _provider_error or "no provider configured"))
-
-    return jsonify({
-
-        "session_id": session_id,
-
-        "evaluation": evaluation,
-
-        "next_question": next_question if should_continue else None,
-
-        "turn": state.turn_count,
-
+    response = {
         "status": "active" if should_continue else "completed",
-
+        "session_id": session_id,
+        "turn": state.turn_count,
+        "evaluation": evaluation,
+        "next_question": next_question,
         "should_continue": should_continue,
-
-        "overall_score": state.overall_score,
-
-        "llm_generated_eval": (evaluation or {}).get("evaluated_by") == "llm",
-
-        "eval_fallback_reason": (evaluation or {}).get("fallback_reason"),
-
+        "llm_available": bool(provider),
         "llm_generated_question": bool((next_question or {}).get("llm_generated")),
-
         "question_fallback_reason": (next_question or {}).get("fallback_reason"),
-
-        "follow_up": bool(follow_up),
-
+        "eval_by": evaluation.get("evaluated_by"),
+        "eval_fallback_reason": evaluation.get("fallback_reason"),
         "rag_used": state.rag_used,
-
         "rag_chunks": len(rag_results),
-
-        "llm": llm_info,
-
-        "llm_runtime": llm_info.get("runtime"),
-
-        "llm_model": llm_info.get("model"),
-
-    })
-
-
-
+    }
+    state.last_answer_fingerprint = fingerprint
+    state.last_response = response
+    extras["conversation"] = conversation
+    if not InterviewSessionStore.save(state, extras, row_id):
+        return jsonify({
+            "success": False,
+            "error": "Interview state could not be saved. Please retry."
+        }), 503
+    return jsonify(response)
 
 
 @app.route('/api/interview-prep/end', methods=['POST'])
-
 def api_interview_prep_end():
-
-    """End the interview session and get summary."""
-
+    """End a DB-persisted interview session and return the complete report."""
     data = request.get_json() or {}
-
-    session_id = data.get("session_id", "")
-
-
-
-    if not session_id or session_id not in interview_sessions:
-
+    session_id = str(data.get("session_id", "") or "").strip()
+    if not session_id:
         return jsonify({"error": "Invalid or expired session"}), 400
 
+    loaded = InterviewSessionStore.load(session_id, current_user.id)
+    if loaded is None:
+        owner = InterviewSessionStore.lookup_owner(session_id)
+        if owner is not None and owner != current_user.id:
+            return jsonify({"success": False, "error": "Invalid or expired session"}), 404
+        return jsonify({"error": "Invalid or expired session"}), 400
 
-
-    sess = interview_sessions[session_id]
-
-    if sess.get("user_id") != current_user.id:
-
-        return jsonify({'success': False, 'error': 'Invalid or expired session'}), 404
-
-    state = sess["state"]
-
+    state, extras, row_id = loaded
     state.finalize()
+    report = state.generate_report()
+    report["session_id"] = session_id
+    report["target_role"] = state.target_role
+    report["interview_mode"] = state.interview_mode
+    report["resume_used"] = state.resume_used
+    report["jd_used"] = state.jd_used
+    report["rag_used"] = state.rag_used
 
-
-
-    summary = {
-
-        "session_id": session_id,
-
-        "target_role": state.target_role,
-
-        "interview_mode": state.interview_mode,
-
-        "questions_asked": len(state.questions_asked),
-
-        "turn_count": state.turn_count,
-
-        "overall_score": state.overall_score,
-
-        "difficulty": state.difficulty,
-
-        "skills_covered": state.skills_covered,
-
-        "required_skills_tested": state.required_skills_tested,
-
-        "weak_areas": state.weak_areas,
-
-        "strong_areas": state.strong_areas,
-
-        "started_at": state.started_at,
-
-        "ended_at": state.ended_at,
-
-        "resume_used": state.resume_used,
-
-        "jd_used": state.jd_used,
-
-        "rag_used": state.rag_used,
-
-    }
-
-
-
-    # Preparation recommendations derived ONLY from this session's real
-    # results (weak areas / coverage), never fabricated market claims.
-    recommendations = []
-
-    for area in (state.weak_areas or [])[:5]:
-
-        skill = area.get("skill") if isinstance(area, dict) else str(area)
-
-        if skill:
-
-            recommendations.append(
-                "Review %s and practice explaining it with a concrete "
-                "project example." % skill)
-
-    if not recommendations:
-
-        recommendations.append(
-            "Solid session - keep practicing with the Role Guide topics "
-            "for %s." % (state.target_role or "this role"))
-
-    summary["recommendations"] = recommendations
-
-    summary["preparation_recommendations"] = recommendations
-
-    interview_sessions.pop(session_id, None)
-
-
-
-    return jsonify({
-
-        "status": "completed",
-
-        "summary": summary,
-
-    })
-
-
-
+    InterviewSessionStore.save(state, extras, row_id)
+    return jsonify({"status": "completed", "summary": report})
 
 
 @app.route('/api/interview-prep', methods=['POST'])
@@ -6533,29 +6214,37 @@ def api_career_insights():
 # Dashboard API
 
 @app.route('/api/dashboard', methods=['GET'])
-
 def api_dashboard():
-
+    """Return dashboard data, with saved guides loaded from the authenticated DB user."""
     user_data = get_user_data()
-
+    saved = []
+    try:
+        rows = SavedJob.query.filter_by(user_id=current_user.id).order_by(
+            SavedJob.id.desc()
+        ).all()
+        for row in rows:
+            guide = {}
+            try:
+                guide = json.loads(row.guide_data or "{}")
+            except Exception:
+                guide = {}
+            if not isinstance(guide, dict):
+                guide = {}
+            guide.setdefault("role_title", row.role_title or "")
+            guide.setdefault("saved_date", row.created_at.strftime("%Y-%m-%d %H:%M") if row.created_at else "")
+            guide["id"] = row.id
+            saved.append(guide)
+    except Exception as exc:
+        logger.warning("Dashboard saved-guide load failed: %s", exc)
+        saved = []
     return jsonify({
-
-        "saved_jobs": user_data['saved_jobs'],
-
+        "saved_jobs": saved,
         "interview_calls": user_data['interview_calls'],
-
         "ats_scores": user_data['ats_scores'],
-
         "resume_versions": user_data['resume_versions'],
-
         "skill_progress": user_data['skill_progress'],
-
         "search_history": user_data['search_history']
-
     })
-
-
-
 
 
 @app.route('/api/dashboard/save-job', methods=['POST'])

@@ -32,6 +32,7 @@ of failing the request.
 """
 import json
 import logging
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from models.user_model import db, InterviewSession, InterviewMessage
@@ -164,6 +165,11 @@ class InterviewSessionStore:
             if row is None:
                 return cls.create(state, extras) is not None
             cls._apply_columns(row, state)
+            if state.ended_at:
+                try:
+                    row.ended_at = datetime.fromisoformat(str(state.ended_at).replace("Z", "+00:00")).replace(tzinfo=None)
+                except (TypeError, ValueError):
+                    row.ended_at = datetime.utcnow()
             row.state_json = cls._state_to_json(state, extras)
             db.session.commit()
             return True
