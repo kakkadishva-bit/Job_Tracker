@@ -1,5 +1,7 @@
 """RemoteOK job scraper with enhanced API integration"""
 
+import requests
+from requests.exceptions import RequestException
 from .base_scraper import BaseScraper
 from typing import Optional, Dict, Any, List
 from models.job_model import Job
@@ -95,7 +97,7 @@ class RemoteOKScraper(BaseScraper):
                 
                 return []
                 
-            except requests.exceptions.RequestException as e:
+            except RequestException as e:
                 self.logger.warning(f"Attempt {attempt + 1} failed for RemoteOK API: {e}")
                 if attempt < self.config.retry_attempts - 1:
                     time.sleep(self.config.retry_delay)
@@ -147,52 +149,19 @@ class RemoteOKScraper(BaseScraper):
         
         return jobs
     
-    def _matches_search_query(self, job_data: Dict[str, Any], search_terms: List[str]) -> bool:
-        """
-        Check if job matches search query terms with strict filtering
-        
-        Args:
-            job_data: Job data dictionary
-            search_terms: List of search terms
-            
-        Returns:
-            True if job matches search terms
-        """
-        job_title = job_data.get('job_title', '').lower()
-        
-        # Strict filtering: at least one search term must be in the job title
-        # This prevents irrelevant jobs like "Cleaner" when searching for "python developer"
-        title_match = any(term in job_title for term in search_terms if len(term) > 2)
-        
-        if not title_match:
+    def _matches_search_query(self, job_data, search_terms):
+        job_title = (job_data.get('job_title') or '').lower()
+        tags = ' '.join(job_data.get('tags') or []).lower()
+        description = (job_data.get('description') or '').lower()
+        combined = job_title + ' ' + tags + ' ' + description
+        if not combined.strip():
             return False
-        
-        # Additional check: ensure job title contains relevant technical terms for developer roles
-        # Common irrelevant job titles to filter out
-        irrelevant_keywords = ['cleaner', 'baker', 'driver', 'chef', 'waiter', 'receptionist', 
-                           'assistant', 'clerk', 'cashier', 'sales', 'marketing', 'hr']
-        
-        if any(irrelevant in job_title for irrelevant in irrelevant_keywords):
-            return False
-        
-        # For developer/technical roles, ensure some technical relevance
-        technical_keywords = ['developer', 'engineer', 'programmer', 'software', 'python', 
-                           'java', 'javascript', 'frontend', 'backend', 'fullstack', 'data',
-                           'devops', 'architect', 'technical', 'code', 'programming']
-        
-        # If search terms include technical terms, require at least one in title or tags
-        if any(tech in search_terms for tech in technical_keywords):
-            tags = ' '.join(job_data.get('tags', [])).lower()
-            description = job_data.get('description', '').lower()
-            combined_text = f"{job_title} {tags} {description}"
-            
-            # At least one technical keyword should be present
-            has_technical_relevance = any(tech in combined_text for tech in technical_keywords)
-            if not has_technical_relevance:
+        for term in search_terms:
+            if term.lower() not in combined:
                 return False
-        
         return True
-    
+
+
     def _extract_job_data(self, api_job: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract and normalize job data from RemoteOK API response
@@ -241,7 +210,6 @@ class RemoteOKScraper(BaseScraper):
             'posted_date': posted_date,
             'source': 'RemoteOK'
         }
-    
     def _build_search_query(self, parsed_query: ParsedQuery) -> str:
         """
         Build search query from parsed query object

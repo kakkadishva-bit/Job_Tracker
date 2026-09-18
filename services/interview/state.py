@@ -83,6 +83,13 @@ class InterviewState:
         self.weak_areas: List[str] = []
         self.strong_areas: List[str] = []
 
+        # Idempotency: fingerprint of the last processed (question, answer) pair
+        # plus the response returned for it. A duplicate submit (Enter + button,
+        # or a client retry after a timeout) replays last_response instead of
+        # recording the answer twice.
+        self.last_answer_fingerprint: str = ""
+        self.last_response: Optional[Dict[str, Any]] = None
+
     def mark_skill_tested(self, skill: str):
         if skill and skill not in self.skills_covered:
             self.skills_covered.append(skill)
@@ -371,3 +378,70 @@ class InterviewState:
             "overall_score": self._compute_overall_score(),
             "resume_used": self.resume_used, "jd_used": self.jd_used, "rag_used": self.rag_used,
         }
+
+    # ── Persistence ───────────────────────────────────────────────────
+    # The API layer stores interview sessions in the database so that a session
+    # started by one gunicorn worker can be answered by any other worker.
+    # ``to_dict()`` above is a *summary* used for LLM context; ``serialize()`` is
+    # the round-trip representation used for persistence.
+
+    #: Fields copied verbatim through serialize()/from_dict().
+    _PERSISTED_FIELDS = (
+        "session_id", "user_id", "target_role", "experience_level",
+        "interview_mode", "company", "job_id", "started_at", "ended_at",
+        "questions_asked", "topics_covered", "skills_covered", "skills_not_tested",
+        "required_skills_tested", "required_skills_not_tested",
+        "preferred_skills_tested", "preferred_skills_not_tested",
+        "resume_claims_tested", "resume_claims_not_tested",
+        "answer_scores", "follow_up_count", "follow_up_chain", "last_answer",
+        "consecutive_weak_answers", "previous_evaluations", "previous_questions",
+        "skills_remaining", "current_topic", "current_skill", "difficulty",
+        "turn_count", "status", "resume_used", "jd_used", "rag_used",
+        "weak_areas", "strong_areas",
+        # Idempotency bookkeeping for duplicate (Enter + button / retry) submits.
+        "last_answer_fingerprint", "last_response",
+    )
+
+    def serialize(self) -> Dict[str, Any]:
+        """Full state snapshot, JSON-safe, for database persistence."""
+        data: Dict[str, Any] = {}
+        for field in self._PERSISTED_FIELDS:
+            data[field] = getattr(self, field, None)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "InterviewState":
+        """Rebuild an InterviewState from serialize() output.
+
+        Tolerant by design: unknown/missing keys are ignored so a session
+        persisted by an older build can still be resumed.
+        """
+        data = data or {}
+        state = cls(
+            str(data.get("session_id") or ""),
+            user_id=str(data.get("user_id") or ""),
+            target_role=str(data.get("target_role") or ""),
+            experience_level=str(data.get("experience_level") or "unknown"),
+            interview_mode=str(data.get("interview_mode") or "standard"),
+            job_id=data.get("job_id"),
+        )
+        state.company = str(data.get("company") or "")
+        for field in cls._PERSISTED_FIELDS:
+            if field in ("session_id", "user_id", "target_role", "experience_level",
+                         "interview_mode", "company", "job_id"):
+                continue
+            if field not in data:
+                continue
+            value = data[field]
+            current = getattr(state, field, None)
+            if isinstance(current, list) and isinstance(value, list):
+                setattr(state, field, list(value))
+            elif isinstance(current, int) and not isinstance(current, bool) and isinstance(value, (int, float)):
+                setattr(state, field, int(value))
+            else:
+                setattr(state, field, value)
+        if not isinstance(state.last_response, dict):
+            state.last_response = None
+        if not isinstance(state.last_answer_fingerprint, str):
+            state.last_answer_fingerprint = ""
+        return state

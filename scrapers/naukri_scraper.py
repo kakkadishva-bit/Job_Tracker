@@ -2,7 +2,7 @@
 
 import pandas as pd
 from .base_scraper import BaseScraper
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 from typing import Optional, Dict, Any
 from models.job_model import Job
 from utils.query_parser import ParsedQuery
@@ -75,7 +75,7 @@ class NaukriScraper(BaseScraper):
         Returns:
             Complete search URL
         """
-        encoded_title = quote(job_title)
+        encoded_title = quote(job_title.strip().lower().replace(" ", "-"))
         
         if location:
             encoded_location = quote(location)
@@ -359,10 +359,9 @@ class NaukriScraper(BaseScraper):
             try:
                 found = element.find(tag, class_=class_name)
                 if found and found.get('href'):
-                    url = found['href']
+                    url = found.get('href')
                     # Ensure absolute URL
-                    if url.startswith('/'):
-                        url = f"{self.BASE_URL}{url}"
+                    url = urljoin(self.BASE_URL, url)
                     return url
             except Exception:
                 continue

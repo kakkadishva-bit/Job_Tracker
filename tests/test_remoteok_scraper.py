@@ -2,6 +2,7 @@
 
 import unittest
 from unittest.mock import Mock, patch, MagicMock
+import requests
 from scrapers.remoteok_scraper import RemoteOKScraper
 from models.job_model import Job
 
@@ -192,7 +193,7 @@ class TestRemoteOKScraper(unittest.TestCase):
         """Test retry logic on API failure"""
         # First attempt fails, second succeeds
         mock_response_fail = Mock()
-        mock_response_fail.raise_for_status.side_effect = Exception("Network error")
+        mock_response_fail.raise_for_status.side_effect = requests.exceptions.RequestException("Network error")
         
         mock_response_success = Mock()
         mock_response_success.json.return_value = [{'position': 'Job 1'}]

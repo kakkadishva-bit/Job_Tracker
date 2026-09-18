@@ -1,4 +1,4 @@
-/* JobAgent - Authentication JavaScript
+/* Job Tracker - Authentication JavaScript
    Enterprise-grade auth UI with validation, password strength, and UX */
 
 // ─── Password Strength Evaluator ────────────────────────────────────

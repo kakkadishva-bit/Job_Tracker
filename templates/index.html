@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JobAgent - Smart Career Assistant</title>
+    <title>Job Tracker - Smart Career Assistant</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
         <div class="nav-container">
             <a href="#" class="nav-logo" onclick="showPage('home')">
                 <i class="fas fa-robot"></i>
-                <span>JobAgent</span>
+                <span>Job Tracker</span>
             </a>
             <div class="nav-links" id="navLinks">
                 <a href="#" class="nav-link active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i> Home</a>
@@ -28,6 +28,12 @@
                 <a href="#" class="nav-link" data-page="chat" onclick="showPage('chat')"><i class="fas fa-comments"></i> Chat</a>
             </div>
             <button class="nav-toggle" onclick="toggleNav()"><i class="fas fa-bars"></i></button>
+            <div class="nav-user-wrap" id="navUserWrap" style="display:none;">
+                <span class="nav-user-name" id="navUserName"></span>
+                <button class="nav-logout" id="navLogoutBtn" onclick="logoutUser()" title="Log out">
+                    <i class="fas fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
             <div class="nav-bell-wrap" id="navBellWrap" style="display:none;">
                 <button class="nav-bell" id="notifBell" onclick="toggleNotifPanel(event)" title="Notifications">
                     <i class="fas fa-bell"></i>
@@ -35,7 +41,7 @@
                 </button>
                 <div class="notif-panel" id="notifPanel" style="display:none;">
                     <div class="notif-panel-header">
-                        <strong><i class="fas fa-bell"></i> Notifications</strong>
+                        <strong><i class="fas fa-bell"></i> Notifications <span class="notif-header-count" id="notifHeaderCount"></span></strong>
                         <button class="notif-mark-all" onclick="markAllNotificationsRead(event)">Mark all read</button>
                     </div>
                     <div class="notif-list" id="notifList"></div>
@@ -366,7 +372,7 @@
             <div class="chat-feedback-banner" id="chatFeedbackBanner" style="display:none;">
                 <i class="fas fa-bullhorn"></i>
                 <div class="chat-feedback-text">
-                    <strong>We value your feedback!</strong> Share your experience with JobAgent and help us improve. 
+                    <strong>We value your feedback!</strong> Share your experience with Job Tracker and help us improve. 
                     <a href="#" onclick="openFeedbackModal();return false;">Give Feedback</a>
                 </div>
                 <button class="chat-feedback-close" onclick="document.getElementById('chatFeedbackBanner').style.display='none'"><i class="fas fa-times"></i></button>
@@ -421,7 +427,7 @@
                             <div class="chat-header-left">
                                 <i class="fas fa-users chat-header-icon"></i>
                                 <div>
-                                    <strong>JobAgent Community</strong>
+                                    <strong>Job Tracker Community</strong>
                                     <div class="chat-header-subtitle"><span class="chat-online-dot"></span> <span id="chatOnlineCount">0</span> members online</div>
                                 </div>
                             </div>
@@ -478,7 +484,7 @@
                     <i class="fas fa-star" data-rating="4" onclick="setFeedbackRating(4)"></i>
                     <i class="fas fa-star" data-rating="5" onclick="setFeedbackRating(5)"></i>
                 </div>
-                <textarea id="feedbackComment" rows="4" placeholder="Share your experience with JobAgent — what you love, what can be improved..."></textarea>
+                <textarea id="feedbackComment" rows="4" placeholder="Share your experience with Job Tracker — what you love, what can be improved..."></textarea>
                 <div class="feedback-tags">
                     <span class="feedback-tag" onclick="setFeedbackTag(this,'Great App')">Great App</span>
                     <span class="feedback-tag" onclick="setFeedbackTag(this,'Needs Improvement')">Needs Improvement</span>
@@ -503,7 +509,7 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2026 JobAgent. Your career assistant.</p>
+            <p>&copy; 2026 Job Tracker. Your career assistant.</p>
             <p class="footer-disclaimer">This platform provides intelligent career guidance. Salary data and role insights are estimates based on industry averages.</p>
         </div>
     </footer>

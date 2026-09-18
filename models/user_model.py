@@ -35,6 +35,7 @@ class User(UserMixin, db.Model):
     interview_history = db.relationship('InterviewHistory', back_populates='user', cascade='all, delete-orphan')
     sessions = db.relationship('UserSession', back_populates='user', cascade='all, delete-orphan')
     audit_logs = db.relationship('AuditLog', back_populates='user', cascade='all, delete-orphan')
+    preference = db.relationship('UserPreference', uselist=False, backref='user', cascade='all, delete-orphan')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -171,6 +172,9 @@ class InterviewHistory(db.Model):
     rating = db.Column(db.Integer, nullable=True)  # 1-5
     status = db.Column(db.String(50), default='scheduled')  # scheduled, completed, cancelled, rescheduled
     notes = db.Column(db.Text, nullable=True)
+    weak_areas = db.Column(db.Text, nullable=True)  # JSON array of skill/topic strings from practice sessions
+    strong_areas = db.Column(db.Text, nullable=True)  # JSON array
+    overall_score = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', back_populates='interview_history')
@@ -193,8 +197,98 @@ class UserPreference(db.Model):
     search_radius_km = db.Column(db.Integer, default=50)
     preferred_locations = db.Column(db.Text, nullable=True)  # JSON array
     excluded_keywords = db.Column(db.Text, nullable=True)  # JSON array
+
+    # ── Notification preferences (slot-based engine) ─────────────────
+    timezone = db.Column(db.String(64), default='Asia/Kolkata', nullable=False)
+    notification_slots = db.Column(db.String(100), default='8,12,17', nullable=False)
+    notify_job_search = db.Column(db.Boolean, default=True, nullable=False)
+    notify_new_skills = db.Column(db.Boolean, default=True, nullable=False)
+    notify_indemand_skills = db.Column(db.Boolean, default=True, nullable=False)
+    notify_resume = db.Column(db.Boolean, default=True, nullable=False)
+    notify_interview = db.Column(db.Boolean, default=True, nullable=False)
+    notify_tracker = db.Column(db.Boolean, default=True, nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'timezone': self.timezone,
+            'notification_slots': self.notification_slots,
+            'notify_job_search': self.notify_job_search,
+            'notify_new_skills': self.notify_new_skills,
+            'notify_indemand_skills': self.notify_indemand_skills,
+            'notify_resume': self.notify_resume,
+            'notify_interview': self.notify_interview,
+            'notify_tracker': self.notify_tracker,
+            'email_notifications': self.email_notifications,
+            'job_alerts': self.job_alerts,
+            'weekly_digest': self.weekly_digest,
+            'theme': self.theme,
+            'language': self.language,
+            'search_radius_km': self.search_radius_km,
+        }
+
+
+# ─── Lightweight schema upgrades ─────────────────────────────────────
+# db.create_all() creates NEW tables but never adds columns to existing
+# ones (e.g. a database created by an earlier deploy). This helper adds
+# any missing columns with safe defaults. Works on SQLite and Postgres
+# (both support ADD COLUMN).
+
+_PREFERENCE_COLUMNS = (
+    ("timezone", "VARCHAR(64) DEFAULT 'Asia/Kolkata' NOT NULL"),
+    ("notification_slots", "VARCHAR(100) DEFAULT '8,12,17' NOT NULL"),
+    ("notify_job_search", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_new_skills", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_indemand_skills", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_resume", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_interview", "BOOLEAN DEFAULT 1 NOT NULL"),
+    ("notify_tracker", "BOOLEAN DEFAULT 1 NOT NULL"),
+)
+
+_NOTIFICATION_COLUMNS = (
+    ("read_at", "DATETIME NULL"),
+)
+
+_INTERVIEW_HISTORY_COLUMNS = (
+    ("weak_areas", "TEXT NULL"),
+    ("strong_areas", "TEXT NULL"),
+    ("overall_score", "FLOAT NULL"),
+)
+
+
+def ensure_schema_upgrades(app) -> None:
+    """Add columns introduced after the initial schema, if missing."""
+    from sqlalchemy import inspect as sa_inspect, text
+    with app.app_context():
+        try:
+            engine = db.engine
+        except Exception:  # pragma: no cover - engine not ready
+            return
+        plan = (
+            ('user_preferences', _PREFERENCE_COLUMNS),
+            ('notifications', _NOTIFICATION_COLUMNS),
+            ('interview_history', _INTERVIEW_HISTORY_COLUMNS),
+        )
+        for table, columns in plan:
+            try:
+                existing = {c['name'] for c in sa_inspect(engine).get_columns(table)}
+            except Exception:
+                continue
+            for name, ddl in columns:
+                if name in existing:
+                    continue
+                try:
+                    with engine.begin() as conn:
+                        conn.execute(text(
+                            'ALTER TABLE {0} ADD COLUMN {1} {2}'.format(
+                                table, name, ddl)))
+                    print('schema upgrade: added {0}.{1}'.format(table, name))
+                except Exception as exc:  # pragma: no cover
+                    print('schema upgrade skipped {0}.{1}: {2}'.format(
+                        table, name, exc))
+
 
 
 class UserSession(db.Model):
@@ -347,6 +441,7 @@ class Notification(db.Model):
     is_sent = db.Column(db.Boolean, default=False)
     sent_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    read_at = db.Column(db.DateTime, nullable=True)
     
     user = db.relationship('User', backref='notifications')
     
@@ -363,6 +458,7 @@ class Notification(db.Model):
             'message': self.message,
             'link_url': self.link_url,
             'is_read': self.is_read,
+            'read_at': self.read_at.isoformat() if self.read_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

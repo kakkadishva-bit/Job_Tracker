@@ -1,4 +1,4 @@
-/* JobAgent - Frontend (Career Assistant) */
+/* Job Tracker - Frontend (Career Assistant) */
 // Configurable API base URL — used when the frontend is hosted separately from the Flask backend.
 // Falls back to '' (same-origin relative paths) for local development.
 var API_BASE_URL = (function() {
@@ -43,8 +43,25 @@ function showToast(msg,type){
 async function apiCall(url,opts){
   opts=opts||{};
   var fullUrl=apiUrl(url);
-  var r=await fetch(fullUrl,{headers:Object.assign({'Content-Type':'application/json'},opts.headers||{}),method:opts.method||'GET',body:opts.body||undefined});
-  if(!r.ok){var e=await r.json().catch(function(){return{error:'Failed'}});throw new Error(e.error||'Failed');}
+  var r;
+  try{
+    r=await fetch(fullUrl,{headers:Object.assign({'Content-Type':'application/json'},opts.headers||{}),method:opts.method||'GET',body:opts.body||undefined});
+  }catch(netErr){
+    throw new Error('Network error — check your connection and try again.');
+  }
+  var ct=(r.headers.get('content-type')||'');
+  var isJson=ct.indexOf('application/json')!==-1;
+  if(!r.ok){
+    var msg;
+    if(isJson){
+      var eb={};try{eb=await r.json();}catch(_e){}
+      msg=eb.error||eb.message||('Request failed ('+r.status+')');
+    }else if(r.status===401){msg='Please sign in to continue.';}
+    else if(r.status===403){msg='You do not have access to this resource.';}
+    else{msg='Server error ('+r.status+'). Please try again.';}
+    var err=new Error(msg);err.status=r.status;throw err;
+  }
+  if(!isJson){throw new Error('Unexpected server response — please refresh and try again.');}
   return await r.json();
 }
 
@@ -726,7 +743,7 @@ async function acceptChatPolicy(){
   btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Accepting...';
   try{
     await apiCall('/api/chat/accept-policy',{method:'POST'});
-    showToast('Welcome to the JobAgent Community!');
+    showToast('Welcome to the Job Tracker Community!');
     showChatInterface();
   }catch(e){
     showToast('Failed to accept policy: '+e.message,'error');
@@ -808,13 +825,15 @@ function escHtml(str){
   return div.innerHTML;
 }
 
+var chatSending=false;
 async function sendChatMessage(){
   var input=document.getElementById('chatMessageInput');
+  if(chatSending)return; // one submission = one request (Enter/button double-fire safe)
   var msg=input.value.trim();
   if(!msg){showToast('Type a message first','error');return;}
   if(msg.length>1000){showToast('Message too long (max 1000 chars)','error');return;}
   var btn=document.getElementById('sendChatBtn');
-  btn.disabled=true;
+  chatSending=true;btn.disabled=true;
   try{
     var data=await apiCall('/api/chat/send',{method:'POST',body:JSON.stringify({message:msg})});
     if(data.success){
@@ -822,11 +841,14 @@ async function sendChatMessage(){
       // Re-fetch messages to show in context
       loadChatMessages();
       showToast('Message sent!');
+    }else{
+      showToast('Failed to send: '+(data.message||'please try again'),'error');
     }
   }catch(e){
-    showToast('Failed to send: '+e.message,'error');
+    // The typed message is preserved — the user can simply retry.
+    showToast('Failed to send: '+e.message+' — your message is kept, try again','error');
   }
-  finally{btn.disabled=false;}
+  finally{chatSending=false;btn.disabled=false;}
 }
 
 function insertQuickTag(tag){
@@ -1160,6 +1182,36 @@ function updateNotifBellVisibility(authenticated) {
     if (!wrap) return;
     wrap.style.display = authenticated ? 'block' : 'none';
     if (!authenticated) updateNotifBadge(0);
+    updateNavUser(authenticated);
+}
+
+/* Show the signed-in username and the Logout control in the nav. */
+async function updateNavUser(authenticated) {
+    var wrap = document.getElementById('navUserWrap');
+    var nameEl = document.getElementById('navUserName');
+    if (!wrap) return;
+    if (!authenticated) {
+        wrap.style.display = 'none';
+        if (nameEl) nameEl.textContent = '';
+        return;
+    }
+    wrap.style.display = 'flex';
+    if (nameEl) {
+        var user = await getAuthUser();
+        nameEl.textContent = (user && user.username) ? user.username : '';
+    }
+}
+
+/* Log out: invalidates the server session, then returns to Login. */
+async function logoutUser() {
+    try {
+        await apiCall('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+        /* Session may already be gone - still send the user to Login. */
+    }
+    currentAuthUser = null;
+    updateNotifBadge(0);
+    window.location.href = '/login';
 }
 
 function updateNotifBadge(count) {
@@ -1171,6 +1223,8 @@ function updateNotifBadge(count) {
     } else {
         badge.style.display = 'none';
     }
+    var head = document.getElementById('notifHeaderCount');
+    if (head) head.textContent = count > 0 ? '(' + count + ' unread)' : '';
 }
 
 async function initNotifications() {
@@ -1203,16 +1257,41 @@ async function refreshNotifications() {
     }
 }
 
+/* Notification categories -> icon. Keys match the `type` values written by
+   services/notifications/checks.py (six real-data categories). */
 function notifIconClass(type) {
     if (type === 'new_job_match') return 'notif-icon-type-job';
+    if (type === 'new_skill') return 'notif-icon-type-skill';
+    if (type === 'indemand_skill') return 'notif-icon-type-demand';
+    if (type === 'resume_analysis') return 'notif-icon-type-resume';
+    if (type === 'resume_reanalyze') return 'notif-icon-type-resume';
     if (type === 'interview_reminder') return 'notif-icon-type-interview';
+    if (type === 'interview_prep') return 'notif-icon-type-interview';
+    if (type === 'tracker_stale') return 'notif-icon-type-tracker';
     return 'notif-icon-type-job';
 }
 
 function notifIcon(type) {
     if (type === 'new_job_match') return 'fa-briefcase';
+    if (type === 'new_skill') return 'fa-graduation-cap';
+    if (type === 'indemand_skill') return 'fa-fire';
+    if (type === 'resume_analysis') return 'fa-file-lines';
+    if (type === 'resume_reanalyze') return 'fa-file-lines';
     if (type === 'interview_reminder') return 'fa-calendar-check';
+    if (type === 'interview_prep') return 'fa-comments';
+    if (type === 'tracker_stale') return 'fa-clipboard-check';
     return 'fa-bell';
+}
+
+/* Human-readable category label shown on each notification. */
+function notifCategoryLabel(type) {
+    if (type === 'new_job_match') return 'Job search';
+    if (type === 'new_skill') return 'New skills';
+    if (type === 'indemand_skill') return 'In-demand skills';
+    if (type === 'resume_analysis' || type === 'resume_reanalyze') return 'Resume';
+    if (type === 'interview_reminder' || type === 'interview_prep') return 'Interview prep';
+    if (type === 'tracker_stale') return 'Job tracker';
+    return 'Update';
 }
 
 function renderNotifList(notifs) {
@@ -1230,7 +1309,7 @@ function renderNotifList(notifs) {
         html += '<div class="notif-icon ' + notifIconClass(n.type) + '"><i class="fas ' + notifIcon(n.type) + '"></i></div>';
         html += '<div class="notif-body"><div class="notif-title">' + escapeHtml(n.title || '') + '</div>';
         html += '<div class="notif-message">' + escapeHtml(n.message || '') + '</div>';
-        html += '<div class="notif-time">' + escapeHtml(when) + '</div></div>';
+        html += '<div class="notif-time"><span class="notif-cat">' + escapeHtml(notifCategoryLabel(n.type)) + '</span> &middot; ' + escapeHtml(when) + '</div></div>';
         if (!read) html += '<span class="notif-dot"></span>';
         html += '</div>';
     });
