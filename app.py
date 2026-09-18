@@ -6231,7 +6231,7 @@ def api_dashboard():
             if not isinstance(guide, dict):
                 guide = {}
             guide.setdefault("role_title", row.role_title or "")
-            guide.setdefault("saved_date", row.created_at.strftime("%Y-%m-%d %H:%M") if row.created_at else "")
+            guide.setdefault("saved_date", row.saved_at.strftime("%Y-%m-%d %H:%M") if row.saved_at else "")
             guide["id"] = row.id
             saved.append(guide)
     except Exception as exc:
