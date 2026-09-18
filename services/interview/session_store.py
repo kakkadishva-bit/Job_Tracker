@@ -138,7 +138,12 @@ class InterviewSessionStore:
                 anon_session_id=str(session_id)[:64]).first()
             if row is None:
                 return None
-            if row.user_id != getattr(user_id, "id", None):
+            expected_user_id = getattr(user_id, "id", user_id)
+            try:
+                expected_user_id = int(expected_user_id) if expected_user_id not in (None, "") else None
+            except (TypeError, ValueError):
+                expected_user_id = None
+            if row.user_id != expected_user_id:
                 return None  # IDOR guard - do not disclose existence
             payload = json.loads(row.state_json) if row.state_json else {}
             state = InterviewState.from_dict(payload.get("state") or {})
