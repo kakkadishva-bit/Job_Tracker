@@ -236,16 +236,12 @@ class UserPreference(db.Model):
 # any missing columns with safe defaults. Works on SQLite and Postgres
 # (both support ADD COLUMN).
 
-_PREFERENCE_COLUMNS = (
-    ("timezone", "VARCHAR(64) DEFAULT 'Asia/Kolkata' NOT NULL"),
-    ("notification_slots", "VARCHAR(100) DEFAULT '8,12,17' NOT NULL"),
-    ("notify_job_search", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("notify_new_skills", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("notify_indemand_skills", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("notify_resume", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("notify_interview", "BOOLEAN DEFAULT 1 NOT NULL"),
-    ("notify_tracker", "BOOLEAN DEFAULT 1 NOT NULL"),
-)
+("notify_job_search", "BOOLEAN DEFAULT TRUE NOT NULL"),
+("notify_new_skills", "BOOLEAN DEFAULT TRUE NOT NULL"),
+("notify_indemand_skills", "BOOLEAN DEFAULT TRUE NOT NULL"),
+("notify_resume", "BOOLEAN DEFAULT TRUE NOT NULL"),
+("notify_interview", "BOOLEAN DEFAULT TRUE NOT NULL"),
+("notify_tracker", "BOOLEAN DEFAULT TRUE NOT NULL"),
 
 _NOTIFICATION_COLUMNS = (
     ("read_at", "DATETIME NULL"),
